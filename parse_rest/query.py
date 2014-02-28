@@ -36,14 +36,29 @@ class QueryManager(object):
         self.model_class = model_class
 
     def _fetch(self, **kw):
+        using = None
+        if kw.has_key('using'):
+            using = kw.get('using')
+            del kw['using']
+        as_user = None
+        if kw.has_key('as_user'):
+            as_user = kw.get('as_user')
+            del kw['as_user']
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
-        return [klass(**it) for it in klass.GET(uri, **kw).get('results')]
+        return [klass(using=using,as_user=as_user,**it) for it in klass.GET(uri, app_id=using,user=as_user,**kw).get('results')]
 
     def _count(self, **kw):
+        using = kw.get('using')
+        as_user = kw.get('as_user')
         kw.update({"count": 1, "limit": 0})
-        return self.model_class.GET(self.model_class.ENDPOINT_ROOT,
+        return self.model_class.GET(self.model_class.ENDPOINT_ROOT,app_id=using,user=as_user,
                                         **kw).get('count')
+    def using(self,using):
+        return Queryset(self,using=using)
+
+    def as_user(self,as_user):
+        return Queryset(self,as_user=as_user)
 
     def all(self):
         return Queryset(self)
@@ -93,10 +108,12 @@ class Queryset(object):
                 return parameter[:-len(underscored)], op
         return parameter, None
 
-    def __init__(self, manager):
+    def __init__(self, manager,using=None,as_user=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
         self._options = {}
+        self._using = using
+        self._as_user = as_user
 
     def __iter__(self):
         return iter(self._fetch())
@@ -107,6 +124,10 @@ class Queryset(object):
         only the number of objects matching.
         """
         options = dict(self._options)  # make a local copy
+        if self._using:
+            options['using'] = self._using
+        if self._as_user:
+            options['as_user'] = self._as_user
         if self._where:
             # JSON encode WHERE values
             where = json.dumps(self._where)
@@ -115,6 +136,17 @@ class Queryset(object):
             return self._manager._count(**options)
 
         return self._manager._fetch(**options)
+
+    def using(self,using):
+        self._using = using
+        return self
+
+    def as_user(self,user):
+        self._as_user = user
+        return self
+
+    def all(self):
+        return self
 
     def filter(self, **kw):
         for name, value in kw.items():
@@ -138,8 +170,8 @@ class Queryset(object):
         results = self._fetch()
         return len(results) > 0
 
-    def get(self):
-        results = self._fetch()
+    def get(self,**kw):
+        results = self.filter(**kw)._fetch()
         if len(results) == 0:
             raise QueryResourceDoesNotExist
         if len(results) >= 2:

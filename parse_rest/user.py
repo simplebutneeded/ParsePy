@@ -37,11 +37,20 @@ class User(ParseResource):
     PROTECTED_ATTRIBUTES = ParseResource.PROTECTED_ATTRIBUTES + [
         'username', 'sessionToken']
 
+    # 
+    _is_master = False
+
+    # Used when creating a user from python for use in as_user() calls
+    _password = None
+
     def is_authenticated(self):
         return self.sessionToken is not None
 
     def authenticate(self, password=None, session_token=None):
         if self.is_authenticated(): return
+
+        if password is None and self._password:
+            password = self._password
 
         if password is not None:
             self = User.login(self.username, password)
@@ -50,6 +59,11 @@ class User(ParseResource):
         if user.objectId == self.objectId and user.sessionToken == session_token:
             self.sessionToken = session_token
 
+    def set_master(self,master):
+        self._is_master = master
+    def is_master(self):
+        return self._is_master
+                
     @login_required
     def session_header(self):
         return {'X-Parse-Session-Token': self.sessionToken}

@@ -29,14 +29,40 @@ ACCESS_KEYS = {}
 
 
 def register(app_id, rest_key, **kw):
+    '''
+        Register one or more sets of keys by app_id. If only one set 
+        is registered, that set is used automatically.
+    '''
     global ACCESS_KEYS
-    ACCESS_KEYS = {
-        'app_id': app_id,
-        'rest_key': rest_key
-        }
-    ACCESS_KEYS.update(**kw)
 
+    if not ACCESS_KEYS:
+        ACCESS_KEYS = { 
+                        'default': {
+                            'app_id': app_id,
+                            'rest_key': rest_key
+                         }
+                      }
+        ACCESS_KEYS['default'].update(**kw)
+    
+    ACCESS_KEYS[app_id] =  {
+        'app_id':app_id,
+        'rest_key':rest_key
+    }
+    ACCESS_KEYS[app_id].update(**kw)
 
+def get_keys(app_id):
+    '''
+        Return keys associated with app_id, or the default set if
+        app_id is None
+    '''
+
+    if not app_id:
+        return ACCESS_KEYS.get('default')
+    else:
+        return ACCESS_KEYS.get(app_id)
+
+"""
+DOESN'T SUPPORT MULTIPLE KEY SETS
 def master_key_required(func):
     '''decorator describing methods that require the master key'''
     def ret(obj, *args, **kw):
@@ -46,13 +72,13 @@ def master_key_required(func):
             raise core.ParseError(message)
         func(obj, *args, **kw)
     return ret
-
+"""
 
 class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, **kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, app_id=None,user=None,**kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
@@ -66,12 +92,14 @@ class ParseBase(object):
                 ret["body"] = kw
             return ret
 
-        if not ('app_id' in ACCESS_KEYS and 'rest_key' in ACCESS_KEYS):
+        keys = get_keys(app_id)
+        
+        if not 'app_id' in keys or not 'rest_key' in keys:
             raise core.ParseError('Missing connection credentials')
 
-        app_id = ACCESS_KEYS.get('app_id')
-        rest_key = ACCESS_KEYS.get('rest_key')
-        master_key = ACCESS_KEYS.get('master_key')
+        app_id = keys.get('app_id')
+        rest_key = keys.get('rest_key')
+        master_key = keys.get('master_key')
 
         headers = extra_headers or {}
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
@@ -85,8 +113,16 @@ class ParseBase(object):
         request.add_header('X-Parse-Application-Id', app_id)
         request.add_header('X-Parse-REST-API-Key', rest_key)
 
-        if master_key and 'X-Parse-Session-Token' not in headers.keys():
-            request.add_header('X-Parse-Master-Key', master_key)
+        if user:
+            if user.is_master():
+                if not master_key:
+                    raise core.ParseError('Missing requested master key')
+                elif 'X-Parse-Session-Token' not in headers.keys():
+                    request.add_header('X-Parse-Master-Key', master_key)
+            else:
+                if not user.is_authenticated():
+                    user.authenticate()
+                request.add_header('X-Parse-Session-Token',user.sessionToken)
 
         request.get_method = lambda: http_verb
 
@@ -102,6 +138,7 @@ class ParseBase(object):
             raise exc(e.read())
 
         return json.loads(response.read())
+        
 
     @classmethod
     def GET(cls, uri, **kw):
@@ -124,23 +161,26 @@ class ParseBatcher(ParseBase):
     """Batch together create, update or delete operations"""
     ENDPOINT_ROOT = '/'.join((API_ROOT, 'batch'))
 
-    def batch(self, methods):
+    def batch(self, methods,using=None,as_user=None):
         """
         Given a list of create, update or delete methods to call, call all
         of them in a single batch operation.
         """
+
+        # It's not necessary to pass in using and as_users here since this eventually
+        # calls execute() with the batch flag, which doesn't actually do a callout
         queries, callbacks = zip(*[m(batch=True) for m in methods])
         # perform all the operations in one batch
-        responses = self.execute("", "POST", requests=queries)
+        responses = self.execute("", "POST", requests=queries,app_id=using,user=as_user)
         # perform the callbacks with the response data (updating the existing
         # objets, etc)
         for callback, response in zip(callbacks, responses):
             callback(response["success"])
 
-    def batch_save(self, objects):
+    def batch_save(self, objects,using=None,as_user=None):
         """save a list of objects in one operation"""
-        self.batch([o.save for o in objects])
+        self.batch([o.save for o in objects],using=using,as_user=as_user)
 
-    def batch_delete(self, objects):
+    def batch_delete(self, objects,using=None,as_user=None):
         """delete a list of objects in one operation"""
-        self.batch([o.delete for o in objects])
+        self.batch([o.delete for o in objects],using=using,as_user=as_user)
