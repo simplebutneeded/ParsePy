@@ -36,7 +36,7 @@ class QueryManager(object):
         self.model_class = model_class
 
     def _fetch(self, **kw):
-        raise Exception('asf')
+        raise Exception('asff')
         using = None
         if kw.has_key('using'):
             using = kw.get('using')
