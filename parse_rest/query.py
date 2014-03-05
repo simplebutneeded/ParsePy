@@ -46,7 +46,10 @@ class QueryManager(object):
             del kw['as_user']
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
-        return [klass(using=using,as_user=as_user,**it) for it in klass.GET(uri, app_id=using,user=as_user,**kw).get('results')]
+        if not kw.get('values_list'):
+            return [klass(using=using,as_user=as_user,**it) for it in klass.GET(uri, app_id=using,user=as_user,**kw).get('results')]
+        else:
+            return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, app_id=using,user=as_user,**kw).get('results')]
 
     def _count(self, **kw):
         using = kw.get('using')
@@ -71,6 +74,9 @@ class QueryManager(object):
 
     def get(self, **kw):
         return self.filter(**kw).get()
+
+    def values_list(self,*args):
+        return Queryset(self,values_list=args)
 
 
 class QuerysetMetaclass(type):
@@ -108,12 +114,13 @@ class Queryset(object):
                 return parameter[:-len(underscored)], op
         return parameter, None
 
-    def __init__(self, manager,using=None,as_user=None):
+    def __init__(self, manager,using=None,as_user=None,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
         self._options = {}
         self._using = using
         self._as_user = as_user
+        self.values_list = None
 
     def __iter__(self):
         return iter(self._fetch())
@@ -128,6 +135,8 @@ class Queryset(object):
             options['using'] = self._using
         if self._as_user:
             options['as_user'] = self._as_user
+        if self.values_list:
+            options['values_list'] = self.values_list
         if self._where:
             # JSON encode WHERE values
             where = json.dumps(self._where)
@@ -177,6 +186,10 @@ class Queryset(object):
         if len(results) >= 2:
             raise QueryResourceMultipleResultsReturned
         return results[0]
+
+    def values_list(self,*args):
+        self.values_list = args
+        return self
 
     def __repr__(self):
         return unicode(self._fetch())
