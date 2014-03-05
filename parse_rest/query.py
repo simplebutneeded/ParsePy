@@ -130,6 +130,7 @@ class Queryset(object):
         Return a list of objects matching query, or if count == True return
         only the number of objects matching.
         """
+        raise Exception('asf')
         options = dict(self._options)  # make a local copy
         if self._using:
             options['using'] = self._using
@@ -192,5 +193,4 @@ class Queryset(object):
         return self
 
     def __repr__(self):
-        raise Exception('asf')
         return unicode(self._fetch())
