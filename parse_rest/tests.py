@@ -271,6 +271,16 @@ class TestQuery(object):
         for s in self.scores:
             s.save(using=self.USING)
 
+    def testValuesList(self):
+        res = [x for x in Game.Query.values_list('score','player_name')]
+        expected = set([s,'John Doe'] for s in range(1,6) )
+        print res,expected
+        self.assert_(set(res) == expected)
+
+        res = [x for x in Game.Query.all().values_list('score','player_name')]
+        self.assert_(set(res) == expected)        
+
+
     def testExists(self):
         """test the Queryset.exists() method"""
         for s in range(1, 6):
