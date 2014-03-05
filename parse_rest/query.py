@@ -123,7 +123,6 @@ class Queryset(object):
         self.values_list = None
 
     def __iter__(self):
-        raise Exception('asf')
         return iter(self._fetch())
 
     def _fetch(self, count=False):
@@ -193,4 +192,5 @@ class Queryset(object):
         return self
 
     def __repr__(self):
+        raise Exception('asf')
         return unicode(self._fetch())
