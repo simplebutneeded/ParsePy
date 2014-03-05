@@ -36,7 +36,6 @@ class QueryManager(object):
         self.model_class = model_class
 
     def _fetch(self, **kw):
-        raise Exception('asff')
         using = None
         if kw.has_key('using'):
             using = kw.get('using')
@@ -121,7 +120,7 @@ class Queryset(object):
         self._options = {}
         self._using = using
         self._as_user = as_user
-        self.values_list = None
+        self._values_list = None
 
     def __iter__(self):
         return iter(self._fetch())
@@ -136,8 +135,8 @@ class Queryset(object):
             options['using'] = self._using
         if self._as_user:
             options['as_user'] = self._as_user
-        if self.values_list:
-            options['values_list'] = self.values_list
+        if self._values_list:
+            options['values_list'] = self._values_list
         if self._where:
             # JSON encode WHERE values
             where = json.dumps(self._where)
