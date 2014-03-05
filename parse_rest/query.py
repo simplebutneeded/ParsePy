@@ -36,6 +36,7 @@ class QueryManager(object):
         self.model_class = model_class
 
     def _fetch(self, **kw):
+        raise Exception('asf')
         using = None
         if kw.has_key('using'):
             using = kw.get('using')
@@ -130,7 +131,6 @@ class Queryset(object):
         Return a list of objects matching query, or if count == True return
         only the number of objects matching.
         """
-        raise Exception('asf')
         options = dict(self._options)  # make a local copy
         if self._using:
             options['using'] = self._using
@@ -170,7 +170,8 @@ class Queryset(object):
 
     def order_by(self, order, descending=False):
         # add a minus sign before the order value if descending == True
-        self._options['order'] = descending and ('-' + order) or order
+        if order:
+            self._options['order'] = descending and ('-' + order) or order
         return self
 
     def count(self):
