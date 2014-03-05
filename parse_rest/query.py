@@ -76,7 +76,7 @@ class QueryManager(object):
         return self.filter(**kw).get()
 
     def values_list(self,*args):
-        return Queryset(self,values_list=args)
+        return self.all().values_list(*args)
 
 
 class QuerysetMetaclass(type):
@@ -123,6 +123,7 @@ class Queryset(object):
         self.values_list = None
 
     def __iter__(self):
+        raise Exception('asf')
         return iter(self._fetch())
 
     def _fetch(self, count=False):
