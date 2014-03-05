@@ -125,6 +125,9 @@ class Queryset(object):
     def __iter__(self):
         return iter(self._fetch())
 
+    def __len__(self):
+        return len(self._fetch())
+
     def _fetch(self, count=False):
         """
         Return a list of objects matching query, or if count == True return
