@@ -42,6 +42,8 @@ class User(ParseResource):
 
     # Used when creating a user from python for use in as_user() calls
     _password = None
+    username = None
+    objectId = None
 
     def is_authenticated(self):
         return self.sessionToken is not None
@@ -63,7 +65,7 @@ class User(ParseResource):
         self._is_master = master
     def is_master(self):
         return self._is_master
-                
+        
     @login_required
     def session_header(self):
         return {'X-Parse-Session-Token': self.sessionToken}
