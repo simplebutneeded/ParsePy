@@ -209,7 +209,7 @@ class ParseResource(ParseBase, Pointer):
 
     @classmethod
     def retrieve(cls, resource_id,using=None,as_user=None):
-        return cls(**dict(cls.GET('/' + resource_id,app_id=using,user=as_user),{'app_id':using,'user':as_user})
+        return cls(**dict(cls.GET('/' + resource_id,app_id=using,user=as_user),{'app_id':using,'user':as_user}) )
 
     @property
     def _editable_attrs(self):
