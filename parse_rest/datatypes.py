@@ -80,6 +80,17 @@ class ParseType(object):
     def _to_native(self):
         return self._value
 
+class LazyReferenceDescriptor(object):
+    def __init__(self,cls,*args,**kwargs):
+        self.cls = cls
+        self.args = args
+        self.kwargs = kwargs
+        self._obj = None
+    def __get__(self):
+        if self._obj:
+            return self._obj
+        self._obj = self.cls.retrieve(*args,**kwargs)
+        return self._obj
 
 class Pointer(ParseType):
 
@@ -90,7 +101,8 @@ class Pointer(ParseType):
         # which data store it came from
         app_id = kw.get('__app_id',None)
         user   = kw.get('__user',None)
-        return klass.retrieve(kw.get('objectId'),using=app_id,as_user=user)
+
+        return LazyReferenceDescriptor(klass,kw.get('objectId'),using=app_id,as_user=user)
 
     def __init__(self, obj):
         self._object = obj
