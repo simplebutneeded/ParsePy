@@ -14,6 +14,7 @@
 import base64
 import datetime
 import copy
+import json
 
 from connection import API_ROOT, ParseBase
 from query import QueryManager
