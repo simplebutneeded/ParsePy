@@ -128,6 +128,9 @@ class Queryset(object):
     def __len__(self):
         return len(self._fetch())
 
+    def to_json(self):
+        return json.dumps([x.to_json() for x in self])
+        
     def _fetch(self, count=False):
         """
         Return a list of objects matching query, or if count == True return
