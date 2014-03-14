@@ -366,7 +366,7 @@ class Object(ParseResource):
         for key,val in self.__dict__.items():
             if isinstance(val,LazyReferenceDescriptor):
                 vals[key] = {'pk':getattr(self,key+'_id')}
-            else if isinstance(val,Object):
+            elif isinstance(val,Object):
                 vals[key] = val.to_json()
             else:
                 vals[key] = val
