@@ -231,7 +231,10 @@ class ParseResource(ParseBase, Pointer):
 
     def __init__(self, using=None,as_user=None,**kw):
         for key, value in kw.items():
-            setattr(self, key, ParseType.convert_from_parse(value,using=using,as_user=as_user))
+            a = ParseType.convert_from_parse(value,using=using,as_user=as_user)
+            if isinstance(a,LazyReferenceDescriptor):
+                setattr(key+'_id',value.get('objectId'))
+            setattr(self, key, a)
 
     def _to_native(self):
         return ParseType.convert_to_parse(self)
@@ -357,6 +360,18 @@ class Object(ParseResource):
                 'className': self.__class__.__name__,
                 'objectId': self.objectId
                 })
+
+    def to_json(self):
+        vals = {'pk':self.__getattr__('objectId')}
+        for key,val in self.__dict__.items():
+            if isinstance(val,LazyReferenceDescriptor):
+                vals[key] = {'pk':getattr(self,key+'_id')}
+            else if isinstance(val,Object):
+                vals[key] = val.to_json()
+            else:
+                vals[key] = val
+        return json.dumps(vals)
+
 
     def increment(self, key, amount=1,using=None,as_user=None):
         """
