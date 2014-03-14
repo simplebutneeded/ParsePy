@@ -233,7 +233,7 @@ class ParseResource(ParseBase, Pointer):
         for key, value in kw.items():
             a = ParseType.convert_from_parse(value,using=using,as_user=as_user)
             if isinstance(a,LazyReferenceDescriptor):
-                setattr(key+'_id',value.get('objectId'))
+                setattr(self,key+'_id',value.get('objectId'))
             setattr(self, key, a)
 
     def _to_native(self):
