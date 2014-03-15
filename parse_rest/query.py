@@ -129,7 +129,7 @@ class Queryset(object):
         return len(self._fetch())
 
     def serialize(self):
-        return [x.serialize() for x in self])
+        return [x.serialize() for x in self]
 
     def _fetch(self, count=False):
         """
