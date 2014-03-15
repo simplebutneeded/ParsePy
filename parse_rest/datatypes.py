@@ -81,6 +81,10 @@ class ParseType(object):
     def _to_native(self):
         return self._value
 
+    def serialize(self):
+        return self._to_native()
+        
+
 class LazyReferenceDescriptor(object):
     def __init__(self,cls,*args,**kwargs):
         self.cls = cls
@@ -362,16 +366,16 @@ class Object(ParseResource):
                 'objectId': self.objectId
                 })
 
-    def to_json(self):
+    def serialize(self):
         vals = {'pk':getattr(self,'objectId',None)}
         for key,val in self.__dict__.items():
             if isinstance(val,LazyReferenceDescriptor):
                 vals[key] = {'pk':getattr(self,key+'_id',None)}
-            elif isinstance(val,Object):
-                vals[key] = val.to_json()
+            elif isinstance(val,Object) or hasattr(val,'serialize'):
+                vals[key] = val.serialize()
             else:
                 vals[key] = val
-        return json.dumps(vals)
+        return vals
 
 
     def increment(self, key, amount=1,using=None,as_user=None):
