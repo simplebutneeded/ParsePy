@@ -370,7 +370,7 @@ class Object(ParseResource):
         vals = {'pk':getattr(self,'objectId',None),'__type':self.__class__.__name__,'objectId':getattr(self,'objectId',None)}
         for key,val in self.__dict__.items():
             if isinstance(val,LazyReferenceDescriptor):
-                vals[key] = {'pk':getattr(self,key+'_id',None)}
+                vals[key] = {'pk':getattr(self,key+'_id',None),'__type':a.cls.__name__,'objectId':getattr(self,key+'_id',None)}
             elif isinstance(val,Object) or hasattr(val,'serialize'):
                 vals[key] = val.serialize()
             else:
