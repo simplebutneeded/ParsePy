@@ -274,7 +274,7 @@ class TestQuery(object):
     def testValuesList(self):
         res = [x for x in Game.Query.values_list('score','player_name')]
         expected = set([s,'John Doe'] for s in range(1,6) )
-        print res,expected
+        
         self.assert_(set(res) == expected)
 
         res = [x for x in Game.Query.all().values_list('score','player_name')]

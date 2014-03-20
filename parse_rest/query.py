@@ -136,7 +136,7 @@ class Queryset(object):
         Return a list of objects matching query, or if count == True return
         only the number of objects matching.
         """
-        options = dict(self._options)  # make a local copy
+        options = copy.deepcopy(self._options)  # make a local copy
         if self._using:
             options['using'] = self._using
         if self._as_user:
@@ -152,39 +152,50 @@ class Queryset(object):
 
         return self._manager._fetch(**options)
 
+    def _clone(self):
+        clone = Queryset(manager=self._manager,using=self._using,as_user=self._as_user,
+                         values_list=self._values_list)
+        clone._options = copy.deepcopy(self._options)
+        clone._where = copy.deepcopy(self._where)
+        return clone
+
     def using(self,using):
-        self._using = using
-        return self
+        clone = self._clone()
+        clone._using = using
+        return clone
 
     def as_user(self,user):
-        self._as_user = user
-        return self
+        clone = self._clone()
+        clone._as_user = user
+        return clone
 
     def all(self):
-        return self
+        return self._clone()
 
     def filter(self, **kw):
+        clone = self._clone()
         for name, value in kw.items():
             parse_value = Queryset.convert_to_parse(value)
             attr, operator = Queryset.extract_filter_operator(name)
             if operator is None:
-                self._where[attr] = parse_value
+                clone._where[attr] = parse_value
             else:
-                self._where[attr]['$' + operator] = parse_value
-        return self
+                clone._where[attr]['$' + operator] = parse_value
+        return clone
 
     def order_by(self, order, descending=False):
+        clone = self._clone()
         # add a minus sign before the order value if descending == True
         if order:
-            self._options['order'] = descending and ('-' + order) or order
-        return self
+            clone._options['order'] = descending and ('-' + order) or order
+        return clone
 
     def count(self):
         return self._fetch(count=True)
 
     def exists(self):
-        results = self._fetch()
-        return len(results) > 0
+        results = self._fetch(count=True)
+        return bool(results)
 
     def get(self,**kw):
         results = self.filter(**kw)._fetch()
@@ -195,8 +206,9 @@ class Queryset(object):
         return results[0]
 
     def values_list(self,*args):
-        self.values_list = args
-        return self
+        clone = self._clone()
+        clone._values_list = args
+        return clone
 
     def __repr__(self):
         return unicode(self._fetch())
