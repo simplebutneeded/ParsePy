@@ -251,6 +251,7 @@ class ParseResource(ParseBase, Pointer):
         if '_object_id' in self.__dict__:
             raise ValueError('Can not re-set object id')
         self._object_id = value
+        self.objectId = value
 
     def _get_updated_datetime(self):
         return self.__dict__.get('_updated_at') and self._updated_at._date
@@ -367,8 +368,14 @@ class Object(ParseResource):
                 })
 
     def serialize(self):
-        vals = {'pk':getattr(self,'objectId',None),'__type':self.__class__.__name__,'objectId':getattr(self,'objectId',None)}
+        vals = {'pk':getattr(self,'objectId',None),
+                '__type':self.__class__.__name__,
+                'objectId':self.objectId,
+                'createdAt':self.createdAt,
+                'updatedAt':self.updatedAt}
         for key,val in self.__dict__.items():
+            if key.startswith('_'):
+                continue
             if isinstance(val,LazyReferenceDescriptor):
                 vals[key] = {'pk':getattr(self,key+'_id',None),'__type':val.cls.__name__,'objectId':getattr(self,key+'_id',None)}
             elif isinstance(val,Object) or hasattr(val,'serialize'):
