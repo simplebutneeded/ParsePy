@@ -91,7 +91,7 @@ class LazyReferenceDescriptor(object):
         self.args = args
         self.kwargs = kwargs
         self._obj = None
-    def __get__(self):
+    def __get__(self, instance, owner=None):
         if self._obj:
             return self._obj
         self._obj = self.cls.retrieve(*args,**kwargs)
@@ -367,7 +367,7 @@ class Object(ParseResource):
                 })
 
     def serialize(self):
-        vals = {'pk':getattr(self,'objectId',None)}
+        vals = {'pk':getattr(self,'objectId',None),'__type':self.__class__.__name__,'objectId':self.getattr(self,'objectId',None)}
         for key,val in self.__dict__.items():
             if isinstance(val,LazyReferenceDescriptor):
                 vals[key] = {'pk':getattr(self,key+'_id',None)}
