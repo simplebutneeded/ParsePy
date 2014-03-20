@@ -367,7 +367,7 @@ class Object(ParseResource):
                 })
 
     def serialize(self):
-        vals = {'pk':getattr(self,'objectId',None),'__type':self.__class__.__name__,'objectId':self.getattr(self,'objectId',None)}
+        vals = {'pk':getattr(self,'objectId',None),'__type':self.__class__.__name__,'objectId':getattr(self,'objectId',None)}
         for key,val in self.__dict__.items():
             if isinstance(val,LazyReferenceDescriptor):
                 vals[key] = {'pk':getattr(self,key+'_id',None)}
