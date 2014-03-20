@@ -248,10 +248,9 @@ class ParseResource(ParseBase, Pointer):
         return self.__dict__.get('_object_id')
 
     def _set_object_id(self, value):
-        if '_object_id' in self.__dict__:
+        if '_object_id' in self.__dict__ and value != self._object_id:
             raise ValueError('Can not re-set object id')
         self._object_id = value
-        self.objectId = value
 
     def _get_updated_datetime(self):
         return self.__dict__.get('_updated_at') and self._updated_at._date
