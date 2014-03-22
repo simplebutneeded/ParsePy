@@ -128,6 +128,11 @@ class Queryset(object):
     def __len__(self):
         return len(self._fetch())
 
+    def __getitem__(self,key):
+        self._options['skip']=int(key)
+        self._options['limit']=1
+        return self._manager._fetch(**options)
+
     def serialize(self):
         return [x.serialize() for x in self]
 
