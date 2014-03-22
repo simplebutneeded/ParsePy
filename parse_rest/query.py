@@ -129,8 +129,9 @@ class Queryset(object):
         return len(self._fetch())
 
     def __getitem__(self,key):
-        self._options['skip']=int(key)
-        self._options['limit']=1
+        options = copy.deepcopy(self._options)  # make a local copy
+        options['skip']=int(key)
+        options['limit']=1
         return self._manager._fetch(**options)
 
     def serialize(self):
