@@ -175,6 +175,10 @@ class ParseBatcher(ParseBase):
         # perform the callbacks with the response data (updating the existing
         # objets, etc)
         for callback, response in zip(callbacks, responses):
+            if not response.has_key('success'):
+                import pdb
+                pdb.set_trace()
+                raise core.ParseError('Bad response: %s' % response)
             callback(response["success"])
 
     def batch_save(self, objects,using=None,as_user=None):
