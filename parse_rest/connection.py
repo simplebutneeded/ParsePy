@@ -175,7 +175,7 @@ class ParseBatcher(ParseBase):
         # perform the callbacks with the response data (updating the existing
         # objets, etc)
         for callback, response in zip(callbacks, responses):
-            if not response.has_key('error'):
+            if response.has_key('error'):
                 raise core.ParseError('Error: %s' % response['error'])
             callback(response["success"])
 
