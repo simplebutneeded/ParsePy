@@ -240,6 +240,8 @@ class ParseResource(ParseBase, Pointer):
             if isinstance(a,LazyReferenceDescriptor):
                 setattr(self,key+'_id',value.get('objectId'))
             setattr(self, key, a)
+        self.using = using
+        self.as_user = as_user
 
     def _to_native(self):
         return ParseType.convert_to_parse(self)
