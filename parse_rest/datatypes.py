@@ -240,8 +240,8 @@ class ParseResource(ParseBase, Pointer):
             if isinstance(a,LazyReferenceDescriptor):
                 setattr(self,key+'_id',value.get('objectId'))
             setattr(self, key, a)
-        self.using = using
-        self.as_user = as_user
+        self.__app_id = using
+        self.__user = as_user
 
     def _to_native(self):
         return ParseType.convert_to_parse(self)
@@ -267,6 +267,8 @@ class ParseResource(ParseBase, Pointer):
         self._created_at = Date(value)
 
     def save(self, batch=False,using=None,as_user=None):
+        using = using or getattr(self,'__app_id',None)
+        as_user = as_user or getattr(self,'__user',None)
         if self.objectId:
             return self._update(batch=batch,using=using,as_user=as_user)
         else:

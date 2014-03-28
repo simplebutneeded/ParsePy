@@ -46,6 +46,7 @@ class QueryManager(object):
             del kw['as_user']
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
+
         if not kw.get('values_list'):
             return [klass(using=using,as_user=as_user,**it) for it in klass.GET(uri, app_id=using,user=as_user,**kw).get('results')]
         else:
