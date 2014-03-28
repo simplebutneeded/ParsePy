@@ -290,6 +290,7 @@ class ParseResource(ParseBase, Pointer):
         def call_back(response_dict):
             self.createdAt = self.updatedAt = response_dict['createdAt']
             self.objectId = response_dict['objectId']
+            self.id = self.objectId
 
         if batch:
             return response, call_back
