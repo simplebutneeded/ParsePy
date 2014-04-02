@@ -32,10 +32,10 @@ class ParseType(object):
 
         # Tag Relations and Pointers with their source app ID
         # in case they're retrieved later
-        if using:
-            if parse_type == 'Relation' or parse_type == 'Pointer':
-                parse_data['_app_id'] = using
-                parse_data['_user'] = as_user
+        #if using:
+        #    if parse_type == 'Relation' or parse_type == 'Pointer':
+        #        parse_data['_using'] = using
+        #        parse_data['_as_user'] = as_user
 
         native = {
             'Pointer': Pointer,
@@ -100,14 +100,14 @@ class LazyReferenceDescriptor(object):
 class Pointer(ParseType):
 
     @classmethod
-    def from_native(cls, **kw):
+    def from_native(cls, using=None,as_user=None,**kw):
         klass = Object.factory(kw.get('className'))
         # This would have been added during the query so we know
         # which data store it came from
-        app_id = kw.get('_app_id',None)
-        user   = kw.get('_user',None)
+        #app_id = kw.get('_app_id',None)
+        #user   = kw.get('_user',None)
 
-        return LazyReferenceDescriptor(klass,kw.get('objectId'),using=app_id,as_user=user)
+        return LazyReferenceDescriptor(klass,kw.get('objectId'),using=using,as_user=as_user)
 
     def __init__(self, obj):
         self._object = obj
@@ -240,8 +240,8 @@ class ParseResource(ParseBase, Pointer):
             if isinstance(a,LazyReferenceDescriptor):
                 setattr(self,key+'_id',value.get('objectId'))
             setattr(self, key, a)
-        self._app_id = using
-        self._user = as_user
+        self._using = using
+        self._as_user = as_user
 
 
 
@@ -269,8 +269,8 @@ class ParseResource(ParseBase, Pointer):
         self._created_at = Date(value)
 
     def save(self, batch=False,using=None,as_user=None):
-        using = using or getattr(self,'_app_id',None)
-        as_user = as_user or getattr(self,'_user',None)
+        using = using or getattr(self,'_using',None)
+        as_user = as_user or getattr(self,'_as_user',None)
         if self.objectId:
             return self._update(batch=batch,using=using,as_user=as_user)
         else:
