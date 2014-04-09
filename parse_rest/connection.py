@@ -27,7 +27,6 @@ import core
 API_ROOT = 'https://api.parse.com/1'
 ACCESS_KEYS = {}
 
-
 def register(app_id, rest_key, **kw):
     '''
         Register one or more sets of keys by app_id. If only one set 

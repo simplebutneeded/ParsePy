@@ -94,7 +94,7 @@ class LazyReferenceDescriptor(object):
     def __get__(self, instance, owner=None):
         if self._obj:
             return self._obj
-        self._obj = self.cls.retrieve(*args,**kwargs)
+        self._obj = self.cls.retrieve(*self.args,**self.kwargs)
         return self._obj
 
 class Pointer(ParseType):
