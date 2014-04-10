@@ -124,7 +124,7 @@ class Pointer(ParseType):
     def _to_native(self):
         return {
             '__type': 'Pointer',
-            'className': self.parse_table or self._object.__class__.__name__,
+            'className': self._object.parse_table or self._object.__class__.__name__,
             'objectId': self._object.objectId
             }
 
