@@ -351,6 +351,7 @@ class ObjectMetaclass(type):
 
 class Object(ParseResource):
     __metaclass__ = ObjectMetaclass
+    parse_table = None
     ENDPOINT_ROOT = '/'.join([API_ROOT, 'classes'])
 
     @classmethod
