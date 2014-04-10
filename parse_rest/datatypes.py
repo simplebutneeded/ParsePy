@@ -85,19 +85,26 @@ class ParseType(object):
         return self._to_native()
         
 
-class LazyReferenceDescriptor(object):
-    def __init__(self,cls,*args,**kwargs):
+class ForeignKey(object):
+    def __init__(self,name,cls):
+        self.name = name
         self.cls = cls
-        self.args = args
-        self.kwargs = kwargs
-        self._obj = None
     def __get__(self, instance, owner=None):
-        if self._obj:
-            return self._obj
-        self._obj = self.cls.retrieve(*self.args,**self.kwargs)
-        return self._obj
+        obj = getattr(instance,self.name+'_obj',None)
+        if obj:
+            return obj
+        oid = getattr(instance,self.name+'_id',None)
+        if not oid:
+            return None
+        obj = self.cls.retrieve(oid,using=instance._using,as_user=instance._as_user)
+        setattr(instance,self.name+'_obj',obj)
+        setattr(instance,self.name+'_id',obj.objectId)
+        return obj
     def __set__(self, instance, value):
-        self._obj = value
+        if isinstance(value,basestring):
+            setattr(instance,self.name+'_id',value)
+        else:
+            setattr(instance,self.name+'_obj',value)
 
 class Pointer(ParseType):
 
@@ -109,7 +116,7 @@ class Pointer(ParseType):
         #app_id = kw.get('_app_id',None)
         #user   = kw.get('_user',None)
 
-        return LazyReferenceDescriptor(klass,kw.get('objectId'),using=using,as_user=as_user)
+        return kw.get('objectId')
 
     def __init__(self, obj):
         self._object = obj
@@ -239,8 +246,6 @@ class ParseResource(ParseBase, Pointer):
     def __init__(self, using=None,as_user=None,**kw):
         for key, value in kw.items():
             a = ParseType.convert_from_parse(value,using=using,as_user=as_user)
-            if isinstance(a,LazyReferenceDescriptor):
-                setattr(self,key+'_id',value.get('objectId'))
             setattr(self, key, a)
         self._using = using
         self._as_user = as_user
@@ -384,8 +389,9 @@ class Object(ParseResource):
         for key,val in self.__dict__.items():
             if key.startswith('_'):
                 continue
-            if isinstance(val,LazyReferenceDescriptor):
-                vals[key] = {'pk':getattr(self,key+'_id',None),'__type':val.cls.__name__,'objectId':getattr(self,key+'_id',None)}
+            if isinstance(val,ParseResource):
+                oid = getattr(self,key+'_id',None)
+                vals[key] = {'pk':oid,'__type':val.cls.__name__,'objectId':oid}
             elif isinstance(val,Object) or hasattr(val,'serialize'):
                 vals[key] = val.serialize()
             else:
