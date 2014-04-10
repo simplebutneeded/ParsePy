@@ -86,7 +86,7 @@ class ParseType(object):
         
 
 class ForeignKey(object):
-    def __init__(self,name,cls):
+    def __init__(self,cls,name):
         self.name = name
         self.cls = cls
     def __get__(self, instance, owner=None):
