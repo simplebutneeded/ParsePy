@@ -124,7 +124,7 @@ class Pointer(ParseType):
     def _to_native(self):
         return {
             '__type': 'Pointer',
-            'className': self._object.__class__.__name__,
+            'className': self.parse_table or self._object.__class__.__name__,
             'objectId': self._object.objectId
             }
 
@@ -339,7 +339,7 @@ class ParseResource(ParseBase, Pointer):
     updatedAt = property(_get_updated_datetime, _set_updated_datetime)
 
     def __repr__(self):
-        return '<%s:%s>' % (unicode(self.__class__.__name__), self.objectId)   
+        return '<%s:%s>' % (unicode(self.parse_table or self.__class__.__name__), self.objectId)   
 
 class ObjectMetaclass(type):
     def __new__(cls, name, bases, dct):
@@ -363,7 +363,7 @@ class Object(ParseResource):
 
     @classmethod
     def set_endpoint_root(cls):
-        root = '/'.join([API_ROOT, 'classes', cls.__name__])
+        root = '/'.join([API_ROOT, 'classes', cls.parse_table or cls.__name__])
         if cls.ENDPOINT_ROOT != root:
             cls.ENDPOINT_ROOT = root
         return cls.ENDPOINT_ROOT
@@ -382,7 +382,7 @@ class Object(ParseResource):
 
     def serialize(self):
         vals = {'pk':getattr(self,'objectId',None),
-                '__type':self.__class__.__name__,
+                '__type':self.parse_table or self.__class__.__name__,
                 'objectId':self.objectId,
                 'createdAt':self.createdAt,
                 'updatedAt':self.updatedAt}
@@ -391,7 +391,7 @@ class Object(ParseResource):
                 continue
             if isinstance(val,ParseResource):
                 oid = getattr(self,key+'_id',None)
-                vals[key] = {'pk':oid,'__type':val.cls.__name__,'objectId':oid}
+                vals[key] = {'pk':oid,'__type':val.parse_table or val.cls.__name__,'objectId':oid}
             elif isinstance(val,Object) or hasattr(val,'serialize'):
                 vals[key] = val.serialize()
             else:
