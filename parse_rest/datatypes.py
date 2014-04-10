@@ -96,6 +96,8 @@ class LazyReferenceDescriptor(object):
             return self._obj
         self._obj = self.cls.retrieve(*self.args,**self.kwargs)
         return self._obj
+    def __set__(self, instance, value):
+        self._obj = value
 
 class Pointer(ParseType):
 
