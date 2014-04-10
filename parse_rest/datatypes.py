@@ -91,7 +91,14 @@ class ForeignKey(object):
     def __get__(self, instance, owner=None):
         obj = getattr(instance,self.name+'_obj',None)
         if obj:
+            # if we queried this, it only has the objectId
+            if hasattr(obj,'_loaded') and not getattr(obj,'_loaded'):
+                obj = self.cls.retrieve(oid,using=instance._using,as_user=instance._as_user)
+                obj._loaded = True
+                setattr(instance,self.name+'_obj',obj)
+                setattr(instance,self.name+'_id',obj.objectId)
             return obj
+
         oid = getattr(instance,self.name+'_id',None)
         if not oid:
             return None
@@ -115,6 +122,11 @@ class Pointer(ParseType):
         #app_id = kw.get('_app_id',None)
         #user   = kw.get('_user',None)
         o = klass(**kw)
+        if kw.keys() == ['objectId']:
+            # not really loaded, just the id
+            o._loaded = False
+        else:
+            o._loaded = True
         o._using = using
         o._as_user = as_user
         return o
