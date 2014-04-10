@@ -115,8 +115,8 @@ class Pointer(ParseType):
         # which data store it came from
         #app_id = kw.get('_app_id',None)
         #user   = kw.get('_user',None)
-
-        return kw.get('objectId')
+        return klass(**kwargs)
+        #return kw.get('objectId')
 
     def __init__(self, obj):
         self._object = obj
