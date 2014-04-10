@@ -84,7 +84,6 @@ class ParseType(object):
     def serialize(self):
         return self._to_native()
         
-
 class ForeignKey(object):
     def __init__(self,cls,name):
         self.name = name
@@ -262,6 +261,7 @@ class ParseResource(ParseBase, Pointer):
         return self.__dict__.get('_object_id')
 
     def _set_object_id(self, value):
+        self.objectId = value
         if '_object_id' in self.__dict__ and value != self._object_id:
             raise ValueError('Can not re-set object id')
         self._object_id = value
