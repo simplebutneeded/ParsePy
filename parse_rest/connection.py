@@ -179,8 +179,6 @@ class ParseBatcher(ParseBase):
             callback(response["success"])
 
     def batch_save(self, objects,using=None,as_user=None):
-        import pdb
-        pdb.set_trace()
         """save a list of objects in one operation"""
         self.batch([o.save for o in objects],using=using,as_user=as_user)
 
