@@ -53,9 +53,13 @@ class ParseType(object):
         is_object = isinstance(python_object, Object)
 
         if is_object and not as_pointer:
-            return dict([(k, ParseType.convert_to_parse(v, as_pointer=True))
+            d = dict([(k, ParseType.convert_to_parse(v, as_pointer=True))
                          for k, v in python_object._editable_attrs.items()
                          ])
+            for k,v in python_object.__class__.__dict__.items():
+                if isinstance(v,ForeignKey):
+                    d[k] = getattr(python_object,k)
+            return d
 
         python_type = Object if is_object else type(python_object)
 
