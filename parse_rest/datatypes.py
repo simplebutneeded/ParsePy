@@ -267,7 +267,7 @@ class ParseResource(ParseBase, Pointer):
 
 
     def _to_native(self):
-        if not isinstance(self,Pointer):
+        if not isinstance(self,Pointer) or (hasattr(self,'_loaded') and getattr(self,'_loaded',None)):
             return ParseType.convert_to_parse(self)
         else:
             return ParseType.convert_to_parse(self,as_pointer=True)
