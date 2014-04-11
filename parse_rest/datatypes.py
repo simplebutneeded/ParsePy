@@ -236,8 +236,8 @@ class Function(ParseBase):
     def __init__(self, name):
         self.name = name
 
-    def __call__(self, using=None,**kwargs):
-        return self.POST('/' + self.name, app_id=using,**kwargs)
+    def __call__(self, using=None,as_user=as_user,**kwargs):
+        return self.POST('/' + self.name, _app_id=using,_as_user=as_user,**kwargs)
 
 
 class ParseResource(ParseBase, Pointer):
@@ -250,7 +250,7 @@ class ParseResource(ParseBase, Pointer):
 
     @classmethod
     def retrieve(cls, resource_id,using=None,as_user=None):
-        return cls(**dict(cls.GET('/' + resource_id,app_id=using,user=as_user),using=using,as_user=as_user) )
+        return cls(**dict(cls.GET('/' + resource_id,_app_id=using,_user=as_user),using=using,as_user=as_user) )
 
     @property
     def _editable_attrs(self):
@@ -306,7 +306,7 @@ class ParseResource(ParseBase, Pointer):
 
     def _create(self, batch=False,using=None,as_user=None):
         uri = self.__class__.ENDPOINT_ROOT
-        response = self.__class__.POST(uri, batch=batch, app_id=using,user=as_user,**self._to_native())
+        response = self.__class__.POST(uri, batch=batch, _app_id=using,_user=as_user,**self._to_native())
 
         if not hasattr(self,'ACL') or self.ACL is None:
             self.ACL = copy.copy(self.DEFAULT_ACL)
@@ -331,7 +331,7 @@ class ParseResource(ParseBase, Pointer):
 
     def _update(self, batch=False,using=None,as_user=None):
         response = self.__class__.PUT(self._absolute_url, batch=batch,
-                                      app_id=using,user=as_user,**self._to_native())
+                                      _app_id=using,_user=as_user,**self._to_native())
 
         def call_back(response_dict):
             self.updatedAt = response_dict['updatedAt']
@@ -342,7 +342,7 @@ class ParseResource(ParseBase, Pointer):
             call_back(response)
 
     def delete(self, batch=False,using=None,as_user=None):
-        response = self.__class__.DELETE(self._absolute_url, batch=batch,app_id=using,user=as_user)
+        response = self.__class__.DELETE(self._absolute_url, batch=batch,_app_id=using,_user=as_user)
         def call_back(response_dict):
             self.__dict__ = {}
 
@@ -432,5 +432,5 @@ class Object(ParseResource):
                 'amount': amount
                 }
             }
-        self.__class__.PUT(self._absolute_url, app_id=using,user=as_user,**payload)
+        self.__class__.PUT(self._absolute_url, _app_id=using,_user=as_user,**payload)
         self.__dict__[key] += amount

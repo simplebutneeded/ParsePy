@@ -77,7 +77,7 @@ class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, app_id=None,user=None,**kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,**kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
@@ -91,7 +91,7 @@ class ParseBase(object):
                 ret["body"] = kw
             return ret
 
-        keys = get_keys(app_id)
+        keys = get_keys(_app_id)
         
         if not 'app_id' in keys or not 'rest_key' in keys:
             raise core.ParseError('Missing connection credentials')
@@ -112,16 +112,16 @@ class ParseBase(object):
         request.add_header('X-Parse-Application-Id', app_id)
         request.add_header('X-Parse-REST-API-Key', rest_key)
 
-        if user:
-            if user.is_master():
+        if _user:
+            if _user.is_master():
                 if not master_key:
                     raise core.ParseError('Missing requested master key')
                 elif 'X-Parse-Session-Token' not in headers.keys():
                     request.add_header('X-Parse-Master-Key', master_key)
             else:
-                if not user.is_authenticated():
-                    user.authenticate()
-                request.add_header('X-Parse-Session-Token',user.sessionToken)
+                if not _user.is_authenticated():
+                    _user.authenticate()
+                request.add_header('X-Parse-Session-Token',_user.sessionToken)
 
         request.get_method = lambda: http_verb
 
