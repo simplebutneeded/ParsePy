@@ -300,9 +300,9 @@ class ParseResource(ParseBase, Pointer):
         using = _using or getattr(self,'_using',None)
         as_user = _as_user or getattr(self,'_as_user',None)
         if self.objectId:
-            return self._update(batch=batch,_using=_using,_as_user=_as_user)
+            return self._update(batch=batch,_using=using,_as_user=as_user)
         else:
-            return self._create(batch=batch,_using=_using,_as_user=_as_user)
+            return self._create(batch=batch,_using=using,_as_user=as_user)
 
     def _create(self, batch=False,_using=None,_as_user=None):
         uri = self.__class__.ENDPOINT_ROOT
