@@ -91,6 +91,9 @@ class ParseBase(object):
                 ret["body"] = kw
             return ret
 
+        if http_verb == 'POST' or http_verb == 'PUT':
+            import pdb
+            pdb.set_trace()
         keys = get_keys(_app_id)
         
         if not 'app_id' in keys or not 'rest_key' in keys:
@@ -145,8 +148,6 @@ class ParseBase(object):
 
     @classmethod
     def POST(cls, uri, **kw):
-        import pdb
-        pdb.set_trace()
         return cls.execute(uri, 'POST', **kw)
 
     @classmethod
@@ -170,7 +171,7 @@ class ParseBatcher(ParseBase):
 
         # It's not necessary to pass in using and as_users here since this eventually
         # calls execute() with the batch flag, which doesn't actually do a callout
-        queries, callbacks = zip(*[m(batch=True,_using=_using,_as_user=_as_user) for m in methods])
+        queries, callbacks = zip(*[m(batch=True) for m in methods])
         # perform all the operations in one batch
         responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user)
         # perform the callbacks with the response data (updating the existing
