@@ -91,9 +91,6 @@ class ParseBase(object):
                 ret["body"] = kw
             return ret
 
-        if http_verb == 'POST' or http_verb == 'PUT':
-            import pdb
-            pdb.set_trace()
         keys = get_keys(_app_id)
         
         if not 'app_id' in keys or not 'rest_key' in keys:
