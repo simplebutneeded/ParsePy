@@ -97,7 +97,7 @@ class ForeignKey(object):
         if obj:
             # if we queried this, it only has the objectId
             if hasattr(obj,'_loaded') and not getattr(obj,'_loaded'):
-                obj = self.cls.retrieve(oid,_using=instance._using,_as_user=instance._as_user)
+                obj = self.cls.retrieve(obj.objectId,_using=instance._using,_as_user=instance._as_user)
                 obj._loaded = True
                 setattr(instance,'_'+self.name+'_obj',obj)
                 setattr(instance,'_'+self.name+'_id',obj.objectId)
