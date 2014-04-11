@@ -121,6 +121,7 @@ class Pointer(ParseType):
         # which data store it came from
         #app_id = kw.get('_app_id',None)
         #user   = kw.get('_user',None)
+        print kw
         o = klass(**kw)
         if kw.keys() == ['objectId']:
             # not really loaded, just the id
