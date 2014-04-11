@@ -122,7 +122,7 @@ class Pointer(ParseType):
         #app_id = kw.get('_app_id',None)
         #user   = kw.get('_user',None)
         o = klass(**kw)
-        if set(kw.keys()) == set('objectId','className','__type'):
+        if set(kw.keys()) == set(['objectId','className','__type']):
             # not really loaded, just the id
             o._loaded = False
         else:
@@ -271,7 +271,7 @@ class ParseResource(ParseBase, Pointer):
             return ParseType.convert_to_parse(self)
         else:
             return ParseType.convert_to_parse(self,as_pointer=True)
-            
+
     def _get_object_id(self):
         return self.__dict__.get('_object_id')
 
