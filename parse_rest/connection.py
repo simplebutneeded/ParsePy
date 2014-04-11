@@ -170,7 +170,7 @@ class ParseBatcher(ParseBase):
 
         # It's not necessary to pass in using and as_users here since this eventually
         # calls execute() with the batch flag, which doesn't actually do a callout
-        queries, callbacks = zip(*[m(batch=True) for m in methods])
+        queries, callbacks = zip(*[m(batch=True,_using=_using,_as_user=_as_user) for m in methods])
         # perform all the operations in one batch
         responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user)
         # perform the callbacks with the response data (updating the existing
