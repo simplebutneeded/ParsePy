@@ -172,7 +172,7 @@ class ParseBatcher(ParseBase):
         # calls execute() with the batch flag, which doesn't actually do a callout
         queries, callbacks = zip(*[m(batch=True) for m in methods])
         # perform all the operations in one batch
-        responses = self.execute("", "POST", requests=queries,app_id=using,user=as_user)
+        responses = self.execute("", "POST", requests=queries,_app_id=using,_user=as_user)
         # perform the callbacks with the response data (updating the existing
         # objets, etc)
         for callback, response in zip(callbacks, responses):
