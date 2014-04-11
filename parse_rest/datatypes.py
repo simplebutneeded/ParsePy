@@ -58,7 +58,13 @@ class ParseType(object):
                          ])
             for k,v in python_object.__class__.__dict__.items():
                 if isinstance(v,ForeignKey):
-                    d[k] = getattr(python_object,k)
+                    obj = getattr(python_object,'_'+k+'_obj',None)
+                    if not obj:
+                        continue
+                    else:
+                        val = ParseType.convert_to_parse(obj,as_pointer=True)
+                        # Ok, there's an object there. Thin conversion
+                        d[k] = val
             return d
 
         python_type = Object if is_object else type(python_object)
