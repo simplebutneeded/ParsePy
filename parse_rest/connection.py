@@ -145,6 +145,8 @@ class ParseBase(object):
 
     @classmethod
     def POST(cls, uri, **kw):
+        import pdb
+        pdb.set_trace()
         return cls.execute(uri, 'POST', **kw)
 
     @classmethod
