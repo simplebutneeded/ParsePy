@@ -185,6 +185,6 @@ class ParseBatcher(ParseBase):
         """save a list of objects in one operation"""
         self.batch([o.save for o in objects],_using=_using,_as_user=_as_user)
 
-    def batch_delete(self, objects,using=None,as_user=None):
+    def batch_delete(self, objects,_using=None,_as_user=None):
         """delete a list of objects in one operation"""
         self.batch([o.delete for o in objects],_using=_using,_as_user=_as_user)
