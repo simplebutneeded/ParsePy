@@ -162,7 +162,7 @@ class ParseBatcher(ParseBase):
     """Batch together create, update or delete operations"""
     ENDPOINT_ROOT = '/'.join((API_ROOT, 'batch'))
 
-    def batch(self, methods,using=None,as_user=None):
+    def batch(self, methods,_using=None,_as_user=None):
         """
         Given a list of create, update or delete methods to call, call all
         of them in a single batch operation.
@@ -172,7 +172,7 @@ class ParseBatcher(ParseBase):
         # calls execute() with the batch flag, which doesn't actually do a callout
         queries, callbacks = zip(*[m(batch=True) for m in methods])
         # perform all the operations in one batch
-        responses = self.execute("", "POST", requests=queries,_app_id=using,_user=as_user)
+        responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user)
         # perform the callbacks with the response data (updating the existing
         # objets, etc)
         for callback, response in zip(callbacks, responses):
@@ -180,10 +180,10 @@ class ParseBatcher(ParseBase):
                 raise core.ParseError('Error: %s' % response['error'])
             callback(response["success"])
 
-    def batch_save(self, objects,using=None,as_user=None):
+    def batch_save(self, objects,_using=None,_as_user=None):
         """save a list of objects in one operation"""
-        self.batch([o.save for o in objects],using=using,as_user=as_user)
+        self.batch([o.save for o in objects],_using=_using,_as_user=_as_user)
 
     def batch_delete(self, objects,using=None,as_user=None):
         """delete a list of objects in one operation"""
-        self.batch([o.delete for o in objects],using=using,as_user=as_user)
+        self.batch([o.delete for o in objects],_using=_using,_as_user=_as_user)
