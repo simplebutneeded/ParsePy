@@ -23,7 +23,7 @@ from query import QueryManager
 class ParseType(object):
 
     @staticmethod
-    def convert_from_parse(parse_data,using,as_user=None):
+    def convert_from_parse(parse_data,_using=None,_as_user=None):
         is_parse_type = isinstance(parse_data, dict) and '__type' in parse_data
         if not is_parse_type:
             return parse_data
@@ -46,7 +46,7 @@ class ParseType(object):
             'Relation': Relation
             }.get(parse_type)
 
-        return native and native.from_native(using=using,as_user=as_user,**parse_data) or parse_data
+        return native and native.from_native(_using=_using,_as_user=_as_user,**parse_data) or parse_data
 
     @staticmethod
     def convert_to_parse(python_object, as_pointer=False):
@@ -93,7 +93,7 @@ class ForeignKey(object):
         if obj:
             # if we queried this, it only has the objectId
             if hasattr(obj,'_loaded') and not getattr(obj,'_loaded'):
-                obj = self.cls.retrieve(oid,using=instance._using,as_user=instance._as_user)
+                obj = self.cls.retrieve(oid,_using=instance._using,_as_user=instance._as_user)
                 obj._loaded = True
                 setattr(instance,'_'+self.name+'_obj',obj)
                 setattr(instance,'_'+self.name+'_id',obj.objectId)
@@ -102,7 +102,7 @@ class ForeignKey(object):
         oid = getattr(instance,self.name+'_id',None)
         if not oid:
             return None
-        obj = self.cls.retrieve(oid,using=instance._using,as_user=instance._as_user)
+        obj = self.cls.retrieve(oid,_using=instance._using,_as_user=instance._as_user)
         setattr(instance,'_'+self.name+'_obj',obj)
         setattr(instance,'_'+self.name+'_id',obj.objectId)
         return obj
@@ -116,7 +116,7 @@ class ForeignKey(object):
 class Pointer(ParseType):
 
     @classmethod
-    def from_native(cls, using=None,as_user=None,**kw):
+    def from_native(cls, _using=None,_as_user=None,**kw):
         klass = Object.factory(kw.get('className'))
         # This would have been added during the query so we know
         # which data store it came from
@@ -128,8 +128,8 @@ class Pointer(ParseType):
             o._loaded = False
         else:
             o._loaded = True
-        o._using = using
-        o._as_user = as_user
+        o._using = _using
+        o._as_user = _as_user
         return o
         #return kw.get('objectId')
 
@@ -236,8 +236,8 @@ class Function(ParseBase):
     def __init__(self, name):
         self.name = name
 
-    def __call__(self, using=None,as_user=as_user,**kwargs):
-        return self.POST('/' + self.name, _app_id=using,_as_user=as_user,**kwargs)
+    def __call__(self, _using=None,_as_user=None,**kwargs):
+        return self.POST('/' + self.name, _app_id=_using,_as_user=_as_user,**kwargs)
 
 
 class ParseResource(ParseBase, Pointer):
@@ -249,8 +249,8 @@ class ParseResource(ParseBase, Pointer):
     DEFAULT_ACL = {'__USER__':{"write":True,"read":True}}
 
     @classmethod
-    def retrieve(cls, resource_id,using=None,as_user=None):
-        return cls(**dict(cls.GET('/' + resource_id,_app_id=using,_user=as_user),using=using,as_user=as_user) )
+    def retrieve(cls, resource_id,_using=None,_as_user=None):
+        return cls(**dict(cls.GET('/' + resource_id,_app_id=_using,_user=_as_user),_using=_using,_as_user=_as_user) )
 
     @property
     def _editable_attrs(self):
@@ -258,12 +258,12 @@ class ParseResource(ParseBase, Pointer):
         allowed = lambda a: a not in protected_attrs and not a.startswith('_')
         return dict([(k, v) for k, v in self.__dict__.items() if allowed(k)])
 
-    def __init__(self, using=None,as_user=None,**kw):
+    def __init__(self, _using=None,_as_user=None,**kw):
         for key, value in kw.items():
-            a = ParseType.convert_from_parse(value,using=using,as_user=as_user)
+            a = ParseType.convert_from_parse(value,_using=_using,_as_user=_as_user)
             setattr(self, key, a)
-        self._using = using
-        self._as_user = as_user
+        self._using = _using
+        self._as_user = _as_user
 
 
 
@@ -296,25 +296,25 @@ class ParseResource(ParseBase, Pointer):
     def _set_created_datetime(self, value):
         self._created_at = Date(value)
 
-    def save(self, batch=False,using=None,as_user=None):
-        using = using or getattr(self,'_using',None)
-        as_user = as_user or getattr(self,'_as_user',None)
+    def save(self, batch=False,_using=None,_as_user=None):
+        using = _using or getattr(self,'_using',None)
+        as_user = _as_user or getattr(self,'_as_user',None)
         if self.objectId:
-            return self._update(batch=batch,using=using,as_user=as_user)
+            return self._update(batch=batch,_using=_using,_as_user=_as_user)
         else:
-            return self._create(batch=batch,using=using,as_user=as_user)
+            return self._create(batch=batch,_using=_using,_as_user=_as_user)
 
-    def _create(self, batch=False,using=None,as_user=None):
+    def _create(self, batch=False,_using=None,_as_user=None):
         uri = self.__class__.ENDPOINT_ROOT
-        response = self.__class__.POST(uri, batch=batch, _app_id=using,_user=as_user,**self._to_native())
+        response = self.__class__.POST(uri, batch=batch, _app_id=_using,_user=_as_user,**self._to_native())
 
         if not hasattr(self,'ACL') or self.ACL is None:
             self.ACL = copy.copy(self.DEFAULT_ACL)
-            if as_user:
+            if _as_user:
                 if self.ACL.has_key('__USER__'):
-                    if not as_user.is_authenticated():
-                        as_user.authenticate()
-                    self.ACL[as_user.id]=self.ACL['__USER__']
+                    if not _as_user.is_authenticated():
+                        _as_user.authenticate()
+                    self.ACL[_as_user.id]=self.ACL['__USER__']
                     del self.ACL['__USER__']
             else:
                 del self.ACL['__USER__']
@@ -329,9 +329,9 @@ class ParseResource(ParseBase, Pointer):
         else:
             call_back(response)
 
-    def _update(self, batch=False,using=None,as_user=None):
+    def _update(self, batch=False,_using=None,_as_user=None):
         response = self.__class__.PUT(self._absolute_url, batch=batch,
-                                      _app_id=using,_user=as_user,**self._to_native())
+                                      _app_id=_using,_user=_as_user,**self._to_native())
 
         def call_back(response_dict):
             self.updatedAt = response_dict['updatedAt']
@@ -341,8 +341,8 @@ class ParseResource(ParseBase, Pointer):
         else:
             call_back(response)
 
-    def delete(self, batch=False,using=None,as_user=None):
-        response = self.__class__.DELETE(self._absolute_url, batch=batch,_app_id=using,_user=as_user)
+    def delete(self, batch=False,_using=None,_as_user=None):
+        response = self.__class__.DELETE(self._absolute_url, batch=batch,_app_id=_using,_user=_as_user)
         def call_back(response_dict):
             self.__dict__ = {}
 
@@ -421,7 +421,7 @@ class Object(ParseResource):
         return vals
 
 
-    def increment(self, key, amount=1,using=None,as_user=None):
+    def increment(self, key, amount=1,_using=None,_as_user=None):
         """
         Increment one value in the object. Note that this happens immediately:
         it does not wait for save() to be called
@@ -432,5 +432,5 @@ class Object(ParseResource):
                 'amount': amount
                 }
             }
-        self.__class__.PUT(self._absolute_url, _app_id=using,_user=as_user,**payload)
+        self.__class__.PUT(self._absolute_url, _app_id=_using,_user=_as_user,**payload)
         self.__dict__[key] += amount

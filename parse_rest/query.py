@@ -37,32 +37,32 @@ class QueryManager(object):
 
     def _fetch(self, **kw):
         using = None
-        if kw.has_key('using'):
-            using = kw.get('using')
-            del kw['using']
+        if kw.has_key('_using'):
+            using = kw.get('_using')
+            del kw['_using']
         as_user = None
-        if kw.has_key('as_user'):
-            as_user = kw.get('as_user')
-            del kw['as_user']
+        if kw.has_key('_as_user'):
+            as_user = kw.get('_as_user')
+            del kw['_as_user']
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
 
         if not kw.get('values_list'):
-            return [klass(using=using,as_user=as_user,**it) for it in klass.GET(uri, app_id=using,user=as_user,**kw).get('results')]
+            return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
         else:
-            return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, app_id=using,user=as_user,**kw).get('results')]
+            return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
 
     def _count(self, **kw):
-        using = kw.get('using')
-        as_user = kw.get('as_user')
+        using = kw.get('_using')
+        as_user = kw.get('_as_user')
         kw.update({"count": 1, "limit": 0})
-        return self.model_class.GET(self.model_class.ENDPOINT_ROOT,app_id=using,user=as_user,
+        return self.model_class.GET(self.model_class.ENDPOINT_ROOT,_app_id=using,_user=as_user,
                                         **kw).get('count')
     def using(self,using):
-        return Queryset(self,using=using)
+        return Queryset(self,_using=using)
 
     def as_user(self,as_user):
-        return Queryset(self,as_user=as_user)
+        return Queryset(self,_as_user=as_user)
 
     def all(self):
         return Queryset(self)
@@ -115,12 +115,12 @@ class Queryset(object):
                 return parameter[:-len(underscored)], op
         return parameter, None
 
-    def __init__(self, manager,using=None,as_user=None,values_list=None):
+    def __init__(self, manager,_using=None,_as_user=None,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
         self._options = {}
-        self._using = using
-        self._as_user = as_user
+        self._using = _using
+        self._as_user = _as_user
         self._values_list = None
 
     def __iter__(self):
@@ -145,9 +145,9 @@ class Queryset(object):
         """
         options = copy.deepcopy(self._options)  # make a local copy
         if self._using:
-            options['using'] = self._using
+            options['_using'] = self._using
         if self._as_user:
-            options['as_user'] = self._as_user
+            options['_as_user'] = self._as_user
         if self._values_list:
             options['values_list'] = self._values_list
         if self._where:
@@ -160,7 +160,7 @@ class Queryset(object):
         return self._manager._fetch(**options)
 
     def _clone(self):
-        clone = Queryset(manager=self._manager,using=self._using,as_user=self._as_user,
+        clone = Queryset(manager=self._manager,_using=self._using,_as_user=self._as_user,
                          values_list=self._values_list)
         clone._options = copy.deepcopy(self._options)
         clone._where = copy.deepcopy(self._where)
