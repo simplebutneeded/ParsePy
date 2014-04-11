@@ -89,28 +89,29 @@ class ForeignKey(object):
         self.name = name
         self.cls = cls
     def __get__(self, instance, owner=None):
-        obj = getattr(instance,self.name+'_obj',None)
+        obj = getattr(instance,'_'+self.name+'_obj',None)
         if obj:
             # if we queried this, it only has the objectId
             if hasattr(obj,'_loaded') and not getattr(obj,'_loaded'):
                 obj = self.cls.retrieve(oid,using=instance._using,as_user=instance._as_user)
                 obj._loaded = True
-                setattr(instance,self.name+'_obj',obj)
-                setattr(instance,self.name+'_id',obj.objectId)
+                setattr(instance,'_'+self.name+'_obj',obj)
+                setattr(instance,'_'+self.name+'_id',obj.objectId)
             return obj
 
         oid = getattr(instance,self.name+'_id',None)
         if not oid:
             return None
         obj = self.cls.retrieve(oid,using=instance._using,as_user=instance._as_user)
-        setattr(instance,self.name+'_obj',obj)
-        setattr(instance,self.name+'_id',obj.objectId)
+        setattr(instance,'_'+self.name+'_obj',obj)
+        setattr(instance,'_'+self.name+'_id',obj.objectId)
         return obj
     def __set__(self, instance, value):
+        #instance.__dict__[self.name] = value
         if isinstance(value,basestring):
-            setattr(instance,self.name+'_id',value)
+            setattr(instance,'_'+self.name+'_id',value)
         else:
-            setattr(instance,self.name+'_obj',value)
+            setattr(instance,'_'+self.name+'_obj',value)
 
 class Pointer(ParseType):
 
