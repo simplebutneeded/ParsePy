@@ -118,7 +118,7 @@ class Queryset(object):
     def __init__(self, manager,_using=None,_as_user=None,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
-        self._options = {}
+        self._options = {'limit':1000}
         self._using = _using
         self._as_user = _as_user
         self._values_list = None
