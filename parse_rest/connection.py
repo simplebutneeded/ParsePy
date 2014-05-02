@@ -10,7 +10,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 try:
     from urllib2 import Request, urlopen, HTTPError
     from urllib import urlencode
@@ -26,6 +25,12 @@ import core
 
 API_ROOT = 'https://api.parse.com/1'
 ACCESS_KEYS = {}
+
+def chunks(l, n):
+    """ Yield successive n-sized chunks from l.
+    """
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
 
 def register(app_id, rest_key, **kw):
     '''
@@ -166,17 +171,19 @@ class ParseBatcher(ParseBase):
         of them in a single batch operation.
         """
 
-        # It's not necessary to pass in using and as_users here since this eventually
-        # calls execute() with the batch flag, which doesn't actually do a callout
-        queries, callbacks = zip(*[m(batch=True) for m in methods])
-        # perform all the operations in one batch
-        responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user)
-        # perform the callbacks with the response data (updating the existing
-        # objets, etc)
-        for callback, response in zip(callbacks, responses):
-            if response.has_key('error'):
-                raise core.ParseError('Error: %s' % response['error'])
-            callback(response["success"])
+        # parse has a 50 record limit in batch mode
+        for thisBatch in chunks(methods,50):
+            # It's not necessary to pass in using and as_users here since this eventually
+            # calls execute() with the batch flag, which doesn't actually do a callout
+            queries, callbacks = zip(*[m(batch=True) for m in thisBatch])
+            # perform all the operations in one batch
+            responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user)
+            # perform the callbacks with the response data (updating the existing
+            # objets, etc)
+            for callback, response in zip(callbacks, responses):
+                if response.has_key('error'):
+                    raise core.ParseError('Error: %s' % response['error'])
+                callback(response["success"])
 
     def batch_save(self, objects,_using=None,_as_user=None):
         """save a list of objects in one operation"""
