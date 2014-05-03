@@ -20,11 +20,21 @@ except ImportError:
     from urllib.parse import urlencode
 
 import json
+import datetime
+import time
 
-import core
+import logging
+LOGGER = logging.getLogger(__name__)
+
+from . import core
 
 API_ROOT = 'https://api.parse.com/1'
 ACCESS_KEYS = {}
+
+# Longest we'll wait for temp network or request errors to clear
+MAX_ERROR_WAIT=60*10
+# Wait period between attempts
+ERROR_WAIT = 50
 
 def chunks(l, n):
     """ Yield successive n-sized chunks from l.
@@ -82,7 +92,7 @@ class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,**kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,retry_on_temp_error=True,error_wait=ERROR_WAIT,max_error_wait=MAX_ERROR_WAIT,**kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
@@ -130,18 +140,32 @@ class ParseBase(object):
 
         request.get_method = lambda: http_verb
 
-        try:
-            response = urlopen(request)
-        except HTTPError as e:
-            exc = {
-                400: core.ResourceRequestBadRequest,
-                401: core.ResourceRequestLoginRequired,
-                403: core.ResourceRequestForbidden,
-                404: core.ResourceRequestNotFound
-                }.get(e.code, core.ParseError)
-            raise exc(e.read())
+        start_time = datetime.datetime.now()
+        while 1:
+            try:
+                response = urlopen(request)
+                return json.loads(response.read())
+            except HTTPError as e:
+                exc = {
+                    400: core.ResourceRequestBadRequest,
+                    401: core.ResourceRequestLoginRequired,
+                    403: core.ResourceRequestForbidden,
+                    404: core.ResourceRequestNotFound
+                    }.get(e.code, core.ParseError)
+                raise exc(e.read())
+            except urllib2.URLError as e:
+                if not retry_on_temp_error:
+                    raise
 
-        return json.loads(response.read())
+                now = datetime.datetime.now()
+                if max_error_wait == 0 or (now - start_time).sections <= max_error_wait:
+                    LOGGER.warn('Temp error during execute(). Waiting %s: %s' % (error_wait,e))
+                    time.sleep(error_wait)
+                else:
+                    LOGGER.error('Temp errors for too long. Bailing due to: %s' % e)
+                    raise
+
+            
         
 
     @classmethod
