@@ -118,11 +118,22 @@ class ParseBase(object):
         headers = extra_headers or {}
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
         data = kw and json.dumps(kw) or "{}"
-        if http_verb == 'GET' and data:
-            url += '?%s' % urlencode(kw)
-            data = None
-
+        
         request = Request(url, data, headers)
+
+        if http_verb == 'GET' and data:
+            new_url = '%s?%s' % (url,urlencode(kw))
+
+            # deal with parse's crappy URL length limit that throws 
+            # 502s without any other helpful message. The current real limit seems
+            # to be ~7800
+            if len(new_url) > 5000:
+                http_verb = 'POST'
+                request.add_header('X-HTTP-Method-Override','GET')                
+            else:
+                url = new_url
+                data = None
+        
         request.add_header('Content-type', 'application/json')
         request.add_header('X-Parse-Application-Id', app_id)
         request.add_header('X-Parse-REST-API-Key', rest_key)
