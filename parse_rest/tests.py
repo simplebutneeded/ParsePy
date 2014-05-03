@@ -91,10 +91,10 @@ class TestObject(object):
         game_score = getattr(self.score, 'score', None)
         if city_name:
             for city in City.Query.using(self.USING).all():
-                city.delete(using=self.USING)
+                city.delete(_using=self.USING)
         if game_score:
             for score in GameScore.Query.using(self.USING).all():
-                score.delete(using=self.USING)
+                score.delete(_using=self.USING)
         
     def testCanInitialize(self):
         self.assert_(self.score.score == self.SCORE_SCORE, 'Could not set score')
@@ -105,11 +105,11 @@ class TestObject(object):
     def testCanSaveDates(self):
         now = datetime.datetime.now()
         self.score.last_played = now
-        self.score.save(using=self.USING)
+        self.score.save(_using=self.USING)
         self.assert_(self.score.last_played == now, 'Could not save date')
 
     def testCanCreateNewObject(self):
-        self.score.save(using=self.USING)
+        self.score.save(_using=self.USING)
         object_id = self.score.objectId
 
         self.assert_(object_id is not None, 'Can not create object')
@@ -119,35 +119,35 @@ class TestObject(object):
                      'Can not create object')
 
     def testCanUpdateExistingObject(self):
-        self.city.save(using=self.USING)
+        self.city.save(_using=self.USING)
         self.city.country = self.CITY_COUNTRY
-        self.city.save(using=self.USING)
+        self.city.save(_using=self.USING)
         self.assert_(type(self.city.updatedAt) == datetime.datetime)
 
         city = City.Query.using(self.USING).get(name=self.CITY_NAME)
         self.assert_(city.country == self.CITY_COUNTRY, 'Could not update object')
 
     def testCanDeleteExistingObject(self):
-        self.score.save(using=self.USING)
+        self.score.save(_using=self.USING)
         object_id = self.score.objectId
-        self.score.delete(using=self.USING)
+        self.score.delete(_using=self.USING)
         self.assert_(not GameScore.Query.using(self.USING).filter(objectId=object_id).exists(),
                      'Failed to delete object %s on Parse ' % self.score)
 
     def testCanIncrementField(self):
         previous_score = self.score.score
-        self.score.save(using=self.USING)
-        self.score.increment('score',using=self.USING)
+        self.score.save(_using=self.USING)
+        self.score.increment('score',_using=self.USING)
         self.assert_(GameScore.Query.using(self.USING).filter(score=previous_score + 1).exists(),
                      'Failed to increment score on backend')
 
     def testAssociatedObject(self):
         """test saving and associating a different object"""
         collectedItem = CollectedItem(type="Sword", isAwesome=True)
-        collectedItem.save(using=self.USING)
+        collectedItem.save(_using=self.USING)
 
         self.score.item = collectedItem
-        self.score.save(using=self.USING)
+        self.score.save(_using=self.USING)
 
         # get the object, see if it has saved
 
@@ -162,7 +162,7 @@ class TestObject(object):
         scores = [GameScore(score=s, player_name=self.SCORE_NAME, cheat_mode=False)
                     for s in range(5)]
         batcher = ParseBatcher()
-        batcher.batch_save(scores,using=self.USING)
+        batcher.batch_save(scores,_using=self.USING)
         
         self.assert_(GameScore.Query.using(self.USING).filter(player_name=self.SCORE_NAME).count() == 5,
                      "batch_save didn't create objects")
@@ -172,7 +172,7 @@ class TestObject(object):
         # test updating
         for s in scores:
             s.score += 10
-        batcher.batch_save(scores,using=self.USING)
+        batcher.batch_save(scores,_using=self.USING)
 
         updated_scores = GameScore.Query.using(self.USING).filter(player_name=self.SCORE_NAME)
         
@@ -180,7 +180,7 @@ class TestObject(object):
                          range(10, 15), msg="batch_save didn't update objects")
 
         # test deletion
-        batcher.batch_delete(scores,using=self.USING)
+        batcher.batch_delete(scores,_using=self.USING)
         self.assert_(GameScore.Query.using(self.USING).filter(player_name=self.SCORE_NAME).count() == 0,
                      "batch_delete didn't delete objects")
 
@@ -258,23 +258,23 @@ class TestQuery(object):
         """save a bunch of GameScore objects with varying scores"""
         # first delete any that exist
         for s in GameScore.Query.using(self.USING).all():
-            s.delete(using=self.USING)
+            s.delete(_using=self.USING)
         for g in Game.Query.all():
-            g.delete(using=self.USING)
+            g.delete(_using=self.USING)
 
         self.game = Game(title="Candyland")
-        self.game.save(using=self.USING)
+        self.game.save(_using=self.USING)
 
         self.scores = [
             GameScore(score=s, player_name='John Doe', game=self.game)
                         for s in range(1, 6)]
         for s in self.scores:
-            s.save(using=self.USING)
+            s.save(_using=self.USING)
 
     def testValuesList(self):
         res = [x for x in Game.Query.values_list('score','player_name')]
         expected = set([s,'John Doe'] for s in range(1,6) )
-        
+
         self.assert_(set(res) == expected)
 
         res = [x for x in Game.Query.all().values_list('score','player_name')]
@@ -313,7 +313,7 @@ class TestQuery(object):
     def testCanQueryDates(self):
         last_week = datetime.datetime.now() - datetime.timedelta(days=7)
         score = GameScore(name='test', last_played=last_week)
-        score.save(using=self.USING)
+        score.save(_using=self.USING)
         self.assert_(GameScore.Query.using(self.USING).filter(last_played=last_week).exists(),
                      'Could not run query with dates')
 
@@ -371,8 +371,8 @@ class TestQuery(object):
     def tearDown(self):
         """delete all GameScore and Game objects"""
         for s in GameScore.Query.using(self.USING).all():
-            s.delete(using=self.USING)
-        self.game.delete(using=self.USING)
+            s.delete(_using=self.USING)
+        self.game.delete(_using=self.USING)
 
 class TestStandardQuery(TestQuery,unittest.TestCase):
     pass
@@ -461,7 +461,7 @@ class TestUser(unittest.TestCase):
             try:
                 self._get_user()
                 user = User.login(self.username,self.password)
-                self.game.delete(as_user=user)
+                self.game.delete(_as_user=user)
             except:
                 pass
         self._destroy_user()
@@ -494,7 +494,7 @@ class TestUser(unittest.TestCase):
 
         self.game = Game(title="Candyland")
         self.game.ACL = {user.objectId:{'read':True}}
-        self.game.save(as_user=user)
+        self.game.save(_as_user=user)
 
         
         self.assert_(Game.Query.filter(title="Candyland").exists() == False)
