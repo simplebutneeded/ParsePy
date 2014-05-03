@@ -119,7 +119,7 @@ class ParseBase(object):
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
         data = kw and json.dumps(kw) or "{}"
         
-        request = Request(url, data, headers)
+        
 
         if http_verb == 'GET' and data:
             new_url = '%s?%s' % (url,urlencode(kw))
@@ -129,11 +129,14 @@ class ParseBase(object):
             # to be ~7800
             if len(new_url) > 5000:
                 http_verb = 'POST'
-                request.add_header('X-HTTP-Method-Override','GET')                
+                headers['X-HTTP-Method-Override']='GET'
+                if 'limit' in kw:
+                    url += '?%s' % urlencode({'limit':kw.get('limit')})                
             else:
                 url = new_url
                 data = None
-        
+
+        request = Request(url, data, headers)
         request.add_header('Content-type', 'application/json')
         request.add_header('X-Parse-Application-Id', app_id)
         request.add_header('X-Parse-REST-API-Key', rest_key)
