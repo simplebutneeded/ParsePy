@@ -22,6 +22,7 @@ except ImportError:
 import json
 import datetime
 import time
+import urllib2
 
 import logging
 LOGGER = logging.getLogger(__name__)
