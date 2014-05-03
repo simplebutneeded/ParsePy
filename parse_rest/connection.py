@@ -152,7 +152,10 @@ class ParseBase(object):
                     403: core.ResourceRequestForbidden,
                     404: core.ResourceRequestNotFound
                     }.get(e.code, core.ParseError)
-                raise exc(e.read())
+                if exc != core.ParseError:
+                    raise exc(e.read())
+                else:
+                    raise exc(e.code,e.read(),e)
             except urllib2.URLError as e:
                 if not retry_on_temp_error:
                     raise
