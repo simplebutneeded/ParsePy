@@ -109,7 +109,7 @@ class ParseBase(object):
 
         keys = get_keys(_app_id)
         
-        if not 'app_id' in keys or not 'rest_key' in keys:
+        if keys or not 'app_id' in keys or not 'rest_key' in keys:
             raise core.ParseError('Missing connection credentials')
 
         app_id = keys.get('app_id')
