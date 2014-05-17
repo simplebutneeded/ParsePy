@@ -53,9 +53,9 @@ class QueryManager(object):
         # This is to compensate for Parse's 1k query limit
         done = False
         limit = kw.get('limit',1000)
-        kwargs['limit'] = limit
+        kw['limit'] = limit
         offset = kw.get('skip',0)
-        kwargs['skip'] = offset
+        kw['skip'] = offset
         results = []
         while not done:
             if not kw.get('values_list'):
@@ -68,7 +68,7 @@ class QueryManager(object):
                 done = True
             else:
                 offset += 1000
-                kwargs['skip'] = offset
+                kw['skip'] = offset
 
             if offset > 10000:
                 # parse can't handle offsets > 10k without a serious hack (order_by)
