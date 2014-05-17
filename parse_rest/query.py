@@ -29,6 +29,9 @@ class QueryResourceMultipleResultsReturned(Exception):
     '''Query was supposed to return unique result, returned more than one'''
     pass
 
+class BadQueryParametersException(Exception):
+    ''' Bad query args '''
+    pass
 
 class QueryManager(object):
 
@@ -47,10 +50,27 @@ class QueryManager(object):
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
 
-        if not kw.get('values_list'):
-            return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
-        else:
-            return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+        # This is to compensate for Parse's 1k query limit
+        done = False
+        limit = kw.get('limit',1000)
+        offset = kw.get('offset',0)
+        results = []
+        while not done:
+            if not kw.get('values_list'):
+                new_res = [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+            else:
+                new_res = [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                
+            results.extend(new_res)
+            if len(new_res) < limit or limit < 1000:
+                done = True
+            else:
+                offset += 1000
+
+            if offset > 10000:
+                # parse can't handle offsets > 10k without a serious hack (order_by)
+                done = True
+        return results
 
     def _count(self, **kw):
         using = kw.get('_using')
@@ -78,6 +98,12 @@ class QueryManager(object):
 
     def values_list(self,*args):
         return self.all().values_list(*args)
+
+    def limit(self,val):
+        return self.all().limit(val)
+
+    def offset(self,val):
+        return self.all().offset(val)
 
 
 class QuerysetMetaclass(type):
@@ -118,7 +144,7 @@ class Queryset(object):
     def __init__(self, manager,_using=None,_as_user=None,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
-        self._options = {'limit':1000}
+        self._options = {}
         self._using = _using
         self._as_user = _as_user
         self._values_list = None
@@ -203,6 +229,23 @@ class Queryset(object):
     def exists(self):
         results = self._fetch(count=True)
         return bool(results)
+
+    def limit(self,val):
+        val = int(val)
+        if val >= 1000:
+            raise BadQueryParametersException('limit must be less than 1000')
+        clone = self._clone()
+        clone._options['limit'] = val
+        return clone
+
+    def offset(self,val):
+        val = int(val)
+        if val >= 10000:
+            raise BadQueryParametersException('offset must be less than or equal to 10000')
+        clone = self._clone()
+        clone._options['offset'] = val
+        return clone
+
 
     def get(self,**kw):
         results = self.filter(**kw)._fetch()
