@@ -132,6 +132,7 @@ class ParseBase(object):
                 http_verb = 'POST'
                 headers['X-HTTP-Method-Override']='GET'
                 if 'limit' in kw:
+                    # it appears that limit needs to be in the URL?!
                     url += '?%s' % urlencode({'limit':kw.get('limit')})                
             else:
                 url = new_url
