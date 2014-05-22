@@ -208,7 +208,7 @@ class ParseBase(object):
                 if 'skip' in url:
                     if '?' not in url:
                         url += '?'
-                    url += 'skip=%s' % offset
+                    url += '&skip=%s' % offset
                 else:
                     url = re.sub('skip=[0-9]+','skip=%s' % offset,url)
 
