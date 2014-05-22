@@ -166,12 +166,12 @@ class ParseBase(object):
                     url += '?%s' % urlencode({'limit':kw.get('limit')})                
             else:
                 url = new_url
-                data = {}
+                data = None
 
         if not _high_volume:
-            return cls._serial_execute(http_verb,url,kw,headers,retry_on_temp_error,error_wait,max_error_wait)
+            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
         else:
-            return cls._concurrent_execute(http_verb,url,kw,headers)
+            return cls._concurrent_execute(http_verb,url,data,headers)
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait):
