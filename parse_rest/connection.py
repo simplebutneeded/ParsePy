@@ -94,6 +94,8 @@ def master_key_required(func):
     return ret
 """
 
+class ConnectionException(Exception): pass
+
 class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
@@ -233,7 +235,7 @@ class ParseBase(object):
             # else try again
 
         # 3 attempts and they didn't succeed
-        raise HTTPError('%s of %s requests failed' % (len(cur_reqs),len(reqs)) )
+        raise ConnectionException('%s of %s requests failed' % (len(cur_reqs),len(reqs)) )
 
     @classmethod
     def GET(cls, uri, **kw):
