@@ -103,7 +103,7 @@ class QueryManager(object):
         return Queryst(self,_high_volume=val)
 
     def include(self,val):
-        return Queryset(self,_include=val)
+        return self.all().include(val)
 
     def all(self):
         return Queryset(self)
@@ -162,14 +162,13 @@ class Queryset(object):
                 return parameter[:-len(underscored)], op
         return parameter, None
 
-    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,_include=None,values_list=None):
+    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,_options={},values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
-        self._options = {}
+        self._options = _options
         self._using = _using
         self._as_user = _as_user
         self._high_volume = _high_volume
-        self._include = _include
         self._values_list = None
 
     def __iter__(self):
@@ -199,9 +198,7 @@ class Queryset(object):
             options['_as_user'] = self._as_user
         if self._high_volume:
             options['_high_volume'] = self._high_volume
-        # notice the lack of _. This goes as a top level parameter
-        if self._include:
-            options['include'] = self._include
+        
         if self._values_list:
             options['values_list'] = self._values_list
         if self._where:
@@ -214,7 +211,7 @@ class Queryset(object):
         return self._manager._fetch(**options)
 
     def _clone(self):
-        clone = Queryset(manager=self._manager,_using=self._using,_as_user=self._as_user,_high_volume=self._high_volume,_include=self._include,
+        clone = Queryset(manager=self._manager,_using=self._using,_as_user=self._as_user,_high_volume=self._high_volume,
                          values_list=self._values_list)
         clone._options = copy.deepcopy(self._options)
         clone._where = copy.deepcopy(self._where)
@@ -237,7 +234,7 @@ class Queryset(object):
 
     def include(self,val):
         clone = self._clone()
-        clone._include = val
+        clone._options['include'] = val
         return clone
 
     def all(self):
