@@ -83,9 +83,9 @@ class QueryManager(object):
         else:
             # high_volume will cause 11 requests to be send concurently
             if not kw.get('values_list'):
-                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,include=_include,**kw).get('results')]
+                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
             else:
-                return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,include=_include,**kw).get('results')]
+                return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
 
     def _count(self, **kw):
         using = kw.get('_using')
