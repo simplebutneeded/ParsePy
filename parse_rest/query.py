@@ -202,6 +202,9 @@ class Queryset(object):
         if self._values_list:
             options['values_list'] = self._values_list
         if self._where:
+            if 'include' in self._where:
+                import pdb
+                pdb.set_trace()
             # JSON encode WHERE values
             where = json.dumps(self._where)
             options.update({'where': where})
