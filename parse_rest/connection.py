@@ -211,7 +211,7 @@ class ParseBase(object):
                     url += '&skip=%s' % offset
                 else:
                     url = re.sub('skip=[0-9]+','skip=%s' % offset,url)
-
+            print url,data
             reqs.append( getattr(grequests,http_verb.lower())(url,data=data,headers=headers) )
 
         cur_reqs = reqs[:]
