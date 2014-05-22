@@ -28,8 +28,8 @@ setup(
     maintainer='David Robinson',
     maintainer_email='dgrtwo@princeton.edu',
     cmdclass={'test': TestCommand},
-    install_requires=]
-            "grequests"
+    install_requires=[
+            "grequests",
         ]
     classifiers=[
         'Development Status :: 4 - Beta',
