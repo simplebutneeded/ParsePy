@@ -217,7 +217,6 @@ class ParseBase(object):
                     resp = json.loads(req.response.content)
                     res['results'].extend(resp.get('results',[]))
                     res['count'] += resp.get('count',0)
-                    cur_reqs.remove(req)
                 return res
 
             # else try again
