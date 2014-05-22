@@ -162,7 +162,7 @@ class Queryset(object):
                 return parameter[:-len(underscored)], op
         return parameter, None
 
-    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,_options={},values_list=None):
+    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
         self._options = _options
