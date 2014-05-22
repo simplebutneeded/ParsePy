@@ -165,6 +165,7 @@ class Queryset(object):
     def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
+        
         self._options = {}
         self._using = _using
         self._as_user = _as_user
@@ -201,7 +202,7 @@ class Queryset(object):
         
         if self._values_list:
             options['values_list'] = self._values_list
-        print self._where
+
         if self._where:
             # JSON encode WHERE values
             where = json.dumps(self._where)
