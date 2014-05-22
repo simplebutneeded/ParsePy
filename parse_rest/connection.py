@@ -24,6 +24,7 @@ import datetime
 import time
 import urllib2
 import grequests
+import re
 
 import logging
 LOGGER = logging.getLogger(__name__)
@@ -138,14 +139,11 @@ class ParseBase(object):
                 headers['X-Parse-Session-Token']=_user.sessionToken
 
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
-
-        data = "{}"
-        if kw:
-            data = json.dumps(kw)
+        data = kw and json.dumps(kw) or "{}"
 
         if http_verb == 'GET' and data:
+            new_url = '%s?%s' % (url,urlencode(kw))
 
-            new_url = '%s?%s' % (url,urlencode(data))
             # deal with parse's crappy URL length limit that throws 
             # 502s without any other helpful message. The current real limit seems
             # to be ~7800
@@ -155,14 +153,14 @@ class ParseBase(object):
                 if 'limit' in kw:
                     # it appears that limit needs to be in the URL?!
                     url += '?%s' % urlencode({'limit':kw.get('limit')})                
-            #else:
-            #    url = new_url
-            #    data = {}
+            else:
+                url = new_url
+                data = None
 
         if not _high_volume:
-            return cls._serial_execute(http_verb,url,kw,headers,retry_on_temp_error,error_wait,max_error_wait)
+            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
         else:
-            return cls._concurrent_execute(http_verb,url,kw,headers)
+            return cls._concurrent_execute(http_verb,url,data,headers)
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait):
@@ -202,7 +200,16 @@ class ParseBase(object):
         # Error handling in grequests is non-existent. We just try three times and call it a day
         reqs = []
         for offset in xrange(0,MAX_PARSE_OFFSET+1000,1000):
-            data['skip'] = offset
+            if data:
+                data['skip'] = offset
+            else:
+                if 'skip' in url:
+                    if '?' not in url:
+                        url += '?'
+                    url += 'skip=%s' % offset
+                else:
+                    url = re.sub('skip=[0-9]+','skip=%s' % offset,url)
+
             reqs.append( getattr(grequests,http_verb.lower())(url,data=data,headers=headers) )
 
         cur_reqs = reqs[:]
