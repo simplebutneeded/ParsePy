@@ -23,6 +23,7 @@ import json
 import datetime
 import time
 import urllib2
+import grequests
 
 import logging
 LOGGER = logging.getLogger(__name__)
@@ -36,6 +37,9 @@ ACCESS_KEYS = {}
 MAX_ERROR_WAIT=60*10
 # Wait period between attempts
 ERROR_WAIT = 50
+
+# Completely lame Parse, completely lame
+MAX_PARSE_OFFSET = 10000
 
 def chunks(l, n):
     """ Yield successive n-sized chunks from l.
@@ -93,13 +97,14 @@ class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,retry_on_temp_error=True,error_wait=ERROR_WAIT,max_error_wait=MAX_ERROR_WAIT,**kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,_high_volume=False,retry_on_temp_error=True,error_wait=ERROR_WAIT,max_error_wait=MAX_ERROR_WAIT,**kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
         If batch == True, return the dictionary that would be used in a batch
         command.
         """
+
         if batch:
             ret = {"method": http_verb,
                    "path": uri.split("parse.com")[1]}
@@ -117,10 +122,23 @@ class ParseBase(object):
         master_key = keys.get('master_key')
 
         headers = extra_headers or {}
+        headers['Content-type']='application/json'
+        headers['X-Parse-Application-Id']=app_id
+        headers['X-Parse-REST-API-Key']=rest_key
+        
+        if _user:
+            if _user.is_master():
+                if not master_key:
+                    raise core.ParseError('Missing requested master key')
+                elif 'X-Parse-Session-Token' not in headers.keys():
+                    headers['X-Parse-Master-Key']= master_key
+            else:
+                if not _user.is_authenticated():
+                    _user.authenticate()
+                headers['X-Parse-Session-Token']=_user.sessionToken
+
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
         data = kw and json.dumps(kw) or "{}"
-        
-        
 
         if http_verb == 'GET' and data:
             new_url = '%s?%s' % (url,urlencode(kw))
@@ -138,22 +156,14 @@ class ParseBase(object):
                 url = new_url
                 data = None
 
+        if not _high_volume:
+            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
+        else:
+            return cls._concurrent_execute(http_verb,url,data,headers)
+
+    @classmethod
+    def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait):
         request = Request(url, data, headers)
-        request.add_header('Content-type', 'application/json')
-        request.add_header('X-Parse-Application-Id', app_id)
-        request.add_header('X-Parse-REST-API-Key', rest_key)
-
-        if _user:
-            if _user.is_master():
-                if not master_key:
-                    raise core.ParseError('Missing requested master key')
-                elif 'X-Parse-Session-Token' not in headers.keys():
-                    request.add_header('X-Parse-Master-Key', master_key)
-            else:
-                if not _user.is_authenticated():
-                    _user.authenticate()
-                request.add_header('X-Parse-Session-Token',_user.sessionToken)
-
         request.get_method = lambda: http_verb
 
         start_time = datetime.datetime.now()
@@ -184,8 +194,36 @@ class ParseBase(object):
                     LOGGER.error('Temp errors for too long. Bailing due to: %s' % e)
                     raise
 
-            
-        
+    @classmethod
+    def _concurrent_execute(cls,http_verb,url,data,headers):
+        # Error handling in grequests is non-existent. We just try three times and call it a day
+        reqs = []
+        for offset in xrange(0,MAX_PARSE_OFFSET+1000,1000):
+            reqs.append( getattr(grequests,http_verb.lower())(url,data=data,headers=headers) )
+
+        cur_reqs = reqs[:]
+        res = {'results':[],'count':0}
+        for i in xrange(0,3):
+            grequests.map(cur_reqs)
+            c = cur_reqs[:]
+            for i in c:
+                if i.response:
+                    # Not this one
+                    cur_reqs.remove(i)
+
+            if not cur_reqs:
+                # they all succeeded
+                for req in reqs:
+                    resp = json.loads(req.response.content)
+                    res['results'].extend(resp.get('results',[]))
+                    res['count'] += resp.get('count',0)
+                    cur_reqs.remove(req)
+                return res
+
+            # else try again
+
+        # 3 attempts and they didn't succeed
+        raise HttpError('%s of %s requests failed' % (len(cur_reqs),len(reqs)) )
 
     @classmethod
     def GET(cls, uri, **kw):
