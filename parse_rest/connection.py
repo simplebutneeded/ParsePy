@@ -143,7 +143,7 @@ class ParseBase(object):
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
 
         data = kw and json.dumps(kw) or "{}"
-
+        print data,kw
         if http_verb == 'GET' and data:
             new_url = '%s?%s' % (url,urlencode(kw))
 
@@ -200,7 +200,7 @@ class ParseBase(object):
 
     @classmethod
     def _concurrent_execute(cls,http_verb,url,data,headers):
-        print http_verb,url,data
+
         # Error handling in grequests is non-existent. We just try three times and call it a day
         reqs = []
         for offset in xrange(0,MAX_PARSE_OFFSET+1000,1000):
