@@ -226,7 +226,6 @@ class ParseBase(object):
             if not cur_reqs:
                 # they all succeeded
                 for req in reqs:
-                    print req.url,req.response.content
                     resp = json.loads(req.response.content)
                     res['results'].extend(resp.get('results',[]))
                     res['count'] += resp.get('count',0)
