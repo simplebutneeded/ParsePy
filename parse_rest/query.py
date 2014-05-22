@@ -51,6 +51,10 @@ class QueryManager(object):
         if kw.has_key('_high_volume'):
             high_volume = kw.get('_high_volume')
             del kw['_high_volume']
+        _include=None
+        if kw.has_key('_include'):
+            _include = kw.get('_include')
+            del kw['_include']
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
 
@@ -64,9 +68,9 @@ class QueryManager(object):
         if not high_volume:
             while not done:
                 if not kw.get('values_list'):
-                    new_res = [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                    new_res = [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_include=_include,**kw).get('results')]
                 else:
-                    new_res = [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                    new_res = [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_include=_include,**kw).get('results')]
                     
                 results.extend(new_res)
                 if len(new_res) < limit or limit < 1000:
@@ -82,9 +86,9 @@ class QueryManager(object):
         else:
             # high_volume will cause 11 requests to be send concurently
             if not kw.get('values_list'):
-                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
+                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,_include=_include,**kw).get('results')]
             else:
-                return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
+                return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,_include=_include,**kw).get('results')]
 
     def _count(self, **kw):
         using = kw.get('_using')
@@ -100,6 +104,9 @@ class QueryManager(object):
 
     def high_volume(self,val):
         return Queryst(self,_high_volume=val)
+
+    def include(self,val):
+        return Queryset(self,_include=val)
 
     def all(self):
         return Queryset(self)
@@ -158,13 +165,14 @@ class Queryset(object):
                 return parameter[:-len(underscored)], op
         return parameter, None
 
-    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,values_list=None):
+    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,_include=None,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
         self._options = {}
         self._using = _using
         self._as_user = _as_user
         self._high_volume = _high_volume
+        self._include = _include
         self._values_list = None
 
     def __iter__(self):
@@ -194,6 +202,9 @@ class Queryset(object):
             options['_as_user'] = self._as_user
         if self._high_volume:
             options['_high_volume'] = self._high_volume
+        # notice the lack of _. This goes as a top level parameter
+        if self._include:
+            options['include'] = self._include
         if self._values_list:
             options['values_list'] = self._values_list
         if self._where:
@@ -206,7 +217,7 @@ class Queryset(object):
         return self._manager._fetch(**options)
 
     def _clone(self):
-        clone = Queryset(manager=self._manager,_using=self._using,_as_user=self._as_user,_high_volume=self._high_volume,
+        clone = Queryset(manager=self._manager,_using=self._using,_as_user=self._as_user,_high_volume=self._high_volume,_include=self._include,
                          values_list=self._values_list)
         clone._options = copy.deepcopy(self._options)
         clone._where = copy.deepcopy(self._where)
@@ -225,6 +236,11 @@ class Queryset(object):
     def high_volume(self,val):
         clone = self._clone()
         clone._high_volume = val
+        return clone
+
+    def include(self,val):
+        clone = self._clone()
+        clone._include = val
         return clone
 
     def all(self):
