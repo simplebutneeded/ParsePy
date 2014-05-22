@@ -217,12 +217,13 @@ class ParseBase(object):
         res = {'results':[],'count':0}
         for i in xrange(0,3):
             grequests.map(cur_reqs)
+            print 'try %s' $ i
             c = cur_reqs[:]
             for i in c:
                 if i.response:
                     # Not this one
                     cur_reqs.remove(i)
-
+            print '%s left' % len(cur_reqs)
             if not cur_reqs:
                 # they all succeeded
                 for req in reqs:
