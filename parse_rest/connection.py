@@ -199,6 +199,7 @@ class ParseBase(object):
         # Error handling in grequests is non-existent. We just try three times and call it a day
         reqs = []
         for offset in xrange(0,MAX_PARSE_OFFSET+1000,1000):
+            data['skip'] = offset
             reqs.append( getattr(grequests,http_verb.lower())(url,data=data,headers=headers) )
 
         cur_reqs = reqs[:]
