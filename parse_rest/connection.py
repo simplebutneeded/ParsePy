@@ -138,11 +138,14 @@ class ParseBase(object):
                 headers['X-Parse-Session-Token']=_user.sessionToken
 
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
-        data = kw and json.dumps(kw) or "{}"
+
+        data = "{}"
+        if kw:
+            data = json.dumps(kw)
 
         if http_verb == 'GET' and data:
-            new_url = '%s?%s' % (url,urlencode(kw))
 
+            new_url = '%s?%s' % (url,urlencode(data))
             # deal with parse's crappy URL length limit that throws 
             # 502s without any other helpful message. The current real limit seems
             # to be ~7800
@@ -157,9 +160,9 @@ class ParseBase(object):
             #    data = {}
 
         if not _high_volume:
-            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
+            return cls._serial_execute(http_verb,url,kw,headers,retry_on_temp_error,error_wait,max_error_wait)
         else:
-            return cls._concurrent_execute(http_verb,url,data,headers)
+            return cls._concurrent_execute(http_verb,url,kw,headers)
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait):
