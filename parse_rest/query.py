@@ -201,13 +201,14 @@ class Queryset(object):
         
         if self._values_list:
             options['values_list'] = self._values_list
+        print self._where
         if self._where:
             # JSON encode WHERE values
             where = json.dumps(self._where)
             options.update({'where': where})
         if count:
             return self._manager._count(**options)
-        print options
+
         return self._manager._fetch(**options)
 
     def _clone(self):
