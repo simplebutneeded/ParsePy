@@ -152,9 +152,9 @@ class ParseBase(object):
                 if 'limit' in kw:
                     # it appears that limit needs to be in the URL?!
                     url += '?%s' % urlencode({'limit':kw.get('limit')})                
-            else:
-                url = new_url
-                data = None
+            #else:
+            #    url = new_url
+            #    data = {}
 
         if not _high_volume:
             return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
