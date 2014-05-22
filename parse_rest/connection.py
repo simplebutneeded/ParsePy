@@ -141,7 +141,14 @@ class ParseBase(object):
                 headers['X-Parse-Session-Token']=_user.sessionToken
 
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
+
+        # TODO: handle query options better
+        if kw.has_key('include'):
+            opts['include'] = kw.get('include')
+            del kw['include']
+
         data = kw and json.dumps(kw) or "{}"
+        data += urlencode(opts)
 
         if http_verb == 'GET' and data:
             new_url = '%s?%s' % (url,urlencode(kw))
@@ -159,13 +166,10 @@ class ParseBase(object):
                 url = new_url
                 data = {}
 
-        if include:
-            data['include'] = include
-            
         if not _high_volume:
-            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
+            return cls._serial_execute(http_verb,url,kw,headers,retry_on_temp_error,error_wait,max_error_wait)
         else:
-            return cls._concurrent_execute(http_verb,url,data,headers)
+            return cls._concurrent_execute(http_verb,url,kw,headers)
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait):
