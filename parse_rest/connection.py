@@ -205,7 +205,7 @@ class ParseBase(object):
             if data:
                 data['skip'] = offset
             else:
-                if 'skip' in url:
+                if 'skip' not in url:
                     if '?' not in url:
                         url += '?'
                     url += '&skip=%s' % offset
