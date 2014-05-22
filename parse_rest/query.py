@@ -165,7 +165,7 @@ class Queryset(object):
     def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
-        self._options = _options
+        self._options = {}
         self._using = _using
         self._as_user = _as_user
         self._high_volume = _high_volume
