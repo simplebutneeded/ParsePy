@@ -233,7 +233,7 @@ class ParseBase(object):
             # else try again
 
         # 3 attempts and they didn't succeed
-        raise HttpError('%s of %s requests failed' % (len(cur_reqs),len(reqs)) )
+        raise HTTPError('%s of %s requests failed' % (len(cur_reqs),len(reqs)) )
 
     @classmethod
     def GET(cls, uri, **kw):
