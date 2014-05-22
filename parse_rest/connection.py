@@ -100,7 +100,7 @@ class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,_high_volume=False,retry_on_temp_error=True,error_wait=ERROR_WAIT,max_error_wait=MAX_ERROR_WAIT,**kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,_high_volume=False,include=None,retry_on_temp_error=True,error_wait=ERROR_WAIT,max_error_wait=MAX_ERROR_WAIT,**kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
@@ -157,8 +157,11 @@ class ParseBase(object):
                     url += '?%s' % urlencode({'limit':kw.get('limit')})                
             else:
                 url = new_url
-                data = None
+                data = {}
 
+        if include:
+            data['include'] = include
+            
         if not _high_volume:
             return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
         else:
@@ -199,7 +202,6 @@ class ParseBase(object):
 
     @classmethod
     def _concurrent_execute(cls,http_verb,url,data,headers):
-        print url,data
         # Error handling in grequests is non-existent. We just try three times and call it a day
         reqs = []
         for offset in xrange(0,MAX_PARSE_OFFSET+1000,1000):
