@@ -142,7 +142,9 @@ class ParseBase(object):
 
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
 
+        # Query options
         # TODO: handle query options better
+        opts = {}
         if kw.has_key('include'):
             opts['include'] = kw.get('include')
             del kw['include']
