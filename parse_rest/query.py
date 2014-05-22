@@ -51,10 +51,7 @@ class QueryManager(object):
         if kw.has_key('_high_volume'):
             high_volume = kw.get('_high_volume')
             del kw['_high_volume']
-        _include=None
-        if kw.has_key('_include'):
-            _include = kw.get('_include')
-            del kw['_include']
+        
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
 
@@ -68,9 +65,9 @@ class QueryManager(object):
         if not high_volume:
             while not done:
                 if not kw.get('values_list'):
-                    new_res = [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_include=_include,**kw).get('results')]
+                    new_res = [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
                 else:
-                    new_res = [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_include=_include,**kw).get('results')]
+                    new_res = [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
                     
                 results.extend(new_res)
                 if len(new_res) < limit or limit < 1000:
@@ -86,9 +83,9 @@ class QueryManager(object):
         else:
             # high_volume will cause 11 requests to be send concurently
             if not kw.get('values_list'):
-                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,_include=_include,**kw).get('results')]
+                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,include=_include,**kw).get('results')]
             else:
-                return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,_include=_include,**kw).get('results')]
+                return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,include=_include,**kw).get('results')]
 
     def _count(self, **kw):
         using = kw.get('_using')
