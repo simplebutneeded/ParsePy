@@ -107,7 +107,7 @@ class ParseBase(object):
         If batch == True, return the dictionary that would be used in a batch
         command.
         """
-
+        print kw
         if batch:
             ret = {"method": http_verb,
                    "path": uri.split("parse.com")[1]}
@@ -143,7 +143,7 @@ class ParseBase(object):
         url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
 
         data = kw and json.dumps(kw) or "{}"
-        print data,kw
+        
         if http_verb == 'GET' and data:
             new_url = '%s?%s' % (url,urlencode(kw))
 
