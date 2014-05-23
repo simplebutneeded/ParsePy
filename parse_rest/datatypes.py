@@ -46,8 +46,7 @@ class ParseType(object):
             'File': File,
             'Relation': Relation
             }.get(parse_type)
-        import pdb
-        pdb.set_trace()
+        
         return native and native.from_native(_using=_using,_as_user=_as_user,**parse_data) or parse_data
 
     @staticmethod
