@@ -38,6 +38,7 @@ class ParseType(object):
         #        parse_data['_as_user'] = as_user
 
         native = {
+            'Object': Pointer,
             'Pointer': Pointer,
             'Date': Date,
             'Bytes': Binary,
