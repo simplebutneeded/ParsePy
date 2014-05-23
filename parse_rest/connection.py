@@ -107,7 +107,7 @@ class ParseBase(object):
         If batch == True, return the dictionary that would be used in a batch
         command.
         """
-        print url
+        print uri
         if batch:
             ret = {"method": http_verb,
                    "path": uri.split("parse.com")[1]}
