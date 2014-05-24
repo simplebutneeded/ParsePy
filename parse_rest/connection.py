@@ -166,6 +166,8 @@ class ParseBase(object):
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait):
+        import datetime
+        print 'serial',datetime.datetime.now(),url
         request = Request(url, data, headers)
         request.get_method = lambda: http_verb
 
@@ -199,7 +201,8 @@ class ParseBase(object):
 
     @classmethod
     def _concurrent_execute(cls,http_verb,url,data,headers):
-
+        import datetime
+        print 'concurrent',datetime.datetime.now(),url
         # Error handling in grequests is non-existent. We just try three times and call it a day
         reqs = []
         for offset in xrange(0,MAX_PARSE_OFFSET+1000,1000):
@@ -217,6 +220,8 @@ class ParseBase(object):
         cur_reqs = reqs[:]
         res = {'results':[],'count':0}
         for i in xrange(0,3):
+            import datetime
+            print i,len(cur_reqs),datetime.datetime.now(),url
             grequests.map(cur_reqs)
             c = cur_reqs[:]
             for i in c:
