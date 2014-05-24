@@ -213,8 +213,10 @@ class Queryset(object):
         if self._high_volume:
             options['_high_volume'] = self._high_volume
         
-        #if self._values_list:
-        #    options['values_list'] = self._values_list
+        if self._values_list:
+            options['_values_list'] = self._values_list
+        if self._values:
+            options['_values'] = self._values
 
         if self._where:
             # JSON encode WHERE values
