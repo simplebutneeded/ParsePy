@@ -162,7 +162,8 @@ class ParseBase(object):
         if not _high_volume:
             return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
         else:
-            return cls._concurrent_execute(http_verb,url,data,headers)
+            c= cls._concurrent_execute(http_verb,url,data,headers)
+            print 'end',datetime.datetime.now()
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait):
