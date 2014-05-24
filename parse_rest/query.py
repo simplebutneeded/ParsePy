@@ -83,7 +83,16 @@ class QueryManager(object):
         else:
             # high_volume will cause 11 requests to be send concurently
             if not kw.get('values_list'):
-                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
+                import datetime
+                print 'about to retrieve',datetime.datetime.now()
+                vals = klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw)
+                print 'got',datetime.datetime.now()
+                res = vals.get('results')
+                print 'results',datetime.datetime.now()
+                r = [klass(_using=using,_as_user=as_user,**it) for it in res]
+                print 'cast',datetime.datetime.now()
+                return r
+                #return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
             else:
                 return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
 
@@ -165,7 +174,7 @@ class Queryset(object):
     def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,values_list=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
-        
+
         self._options = {}
         self._using = _using
         self._as_user = _as_user
