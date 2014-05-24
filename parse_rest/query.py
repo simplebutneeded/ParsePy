@@ -51,7 +51,12 @@ class QueryManager(object):
         if kw.has_key('_high_volume'):
             high_volume = kw.get('_high_volume')
             del kw['_high_volume']
-        
+        values_list = kw.get('_values_list')
+        if values_list:
+            del kw['_values_list']
+        values = kw.get('_values')
+        if values:
+            del kw['_values']
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
 
@@ -64,10 +69,12 @@ class QueryManager(object):
         results = []
         if not high_volume:
             while not done:
-                if not kw.get('values_list'):
+                if not (values_list or values):
                     new_res = [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
-                else:
-                    new_res = [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                elif values_list:
+                    new_res = [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                elif values:
+                    new_res = klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')
                     
                 results.extend(new_res)
                 if len(new_res) < limit or limit < 1000:
@@ -82,19 +89,12 @@ class QueryManager(object):
             return results
         else:
             # high_volume will cause 11 requests to be send concurently
-            if not kw.get('values_list'):
-                import datetime
-                print 'about to retrieve',datetime.datetime.now()
-                vals = klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw)
-                print 'got',datetime.datetime.now()
-                res = vals.get('results')
-                print 'results',datetime.datetime.now()
-                r = [klass(_using=using,_as_user=as_user,**it) for it in res]
-                print 'cast',datetime.datetime.now()
-                return r
-                #return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
-            else:
-                return [[it[y] for y in kw['values_list']] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
+            if not (values_list or values):
+                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
+            elif values_list:
+                return [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
+            elif values:
+                return klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')
 
     def _count(self, **kw):
         using = kw.get('_using')
@@ -128,6 +128,9 @@ class QueryManager(object):
 
     def values_list(self,*args):
         return self.all().values_list(*args)
+
+    def values(self,*args):
+        return self.all().values(*args)
 
     def limit(self,val):
         return self.all().limit(val)
@@ -171,7 +174,7 @@ class Queryset(object):
                 return parameter[:-len(underscored)], op
         return parameter, None
 
-    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,values_list=None):
+    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,_values_list=None,_values=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
 
@@ -179,7 +182,8 @@ class Queryset(object):
         self._using = _using
         self._as_user = _as_user
         self._high_volume = _high_volume
-        self._values_list = None
+        self._values_list = _values_list
+        self._values=_values
 
     def __iter__(self):
         return iter(self._fetch())
@@ -209,8 +213,8 @@ class Queryset(object):
         if self._high_volume:
             options['_high_volume'] = self._high_volume
         
-        if self._values_list:
-            options['values_list'] = self._values_list
+        #if self._values_list:
+        #    options['values_list'] = self._values_list
 
         if self._where:
             # JSON encode WHERE values
@@ -223,7 +227,7 @@ class Queryset(object):
 
     def _clone(self):
         clone = Queryset(manager=self._manager,_using=self._using,_as_user=self._as_user,_high_volume=self._high_volume,
-                         values_list=self._values_list)
+                         _values_list=self._values_list,_values=self._values)
         clone._options = copy.deepcopy(self._options)
         clone._where = copy.deepcopy(self._where)
         return clone
@@ -304,6 +308,11 @@ class Queryset(object):
     def values_list(self,*args):
         clone = self._clone()
         clone._values_list = args
+        return clone
+
+    def values(self,*args):
+        clone = self._clone()
+        clone._values = args
         return clone
 
     def __repr__(self):
