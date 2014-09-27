@@ -25,6 +25,7 @@ import time
 import urllib2
 import grequests
 import re
+import collections
 
 import logging
 LOGGER = logging.getLogger(__name__)
@@ -96,17 +97,94 @@ def master_key_required(func):
 
 class ConnectionException(Exception): pass
 
+class Throttle(object):
+    def __unicode__(self):
+        return unicode(self.__class__.__name__)
+    def __str__(self):
+        return self.__unicode__().encode('utf-8')
+    def __repr__(self):
+        return self.__str__()
+
+class NullThrottle(Throttle):
+    
+    def __enter__(self,*args,**kwargs):
+        return
+    def __exit__(self,exc_type, exc_val, exc_tb):
+        return
+    def calls_per(self,*args,**kwargs):
+        return self
+
+class TimeBasedThrottle(Throttle):
+    def __init__(self,limit,period,calls_per_iteration=1):
+        if period <= 0:
+            raise ValueError('Throttle period should be greater than 0')
+        if limit <= 0:
+            raise ValueError('Throttle limit should be > 0')
+
+        self.limit = limit
+        self.period = period
+
+        self.calls = collections.deque()
+        self.calls_per_iteration = calls_per_iteration
+
+    def __unicode__(self):
+        return u'<TimeBasedThrottle: Period=%s,limit=%s' % (self.period,self.limit)
+
+    def __enter__(self):
+        
+        while self.calls_per_iteration > self.max_calls:
+            for qtrSecs in xrange(1,4,1):
+                # IMO, it's rude to block for large chunks of time
+                time.sleep(.25)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None:
+            self.calls.extend([time.time() for x in xrange(0,self.calls_per_iteration)])
+            self.clean_calls()
+
+        
+
+    def calls_per(self,num_calls):
+        """
+            Return another throttle that assumes num_calls have been made per round
+        """
+        clone = self.__class__(limit=self.limit,period=self.period,calls_per_iteration=num_calls)
+        clone.calls = self.calls
+        return clone
+
+    def clean_calls(self):
+        # get rid of old, no longer relevant calls
+        
+        oldest_needed = time.time()-self.period
+        while True and self.calls:
+            if self.calls[0] < oldest_needed:
+                self.calls.popleft()
+            else:
+                break
+
+    @property
+    def max_calls(self):
+        self.clean_calls()
+        return self.limit - len(self.calls)
+
+DEFAULT_THROTTLE = NullThrottle()
+
 class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,_high_volume=False,retry_on_temp_error=True,error_wait=ERROR_WAIT,max_error_wait=MAX_ERROR_WAIT,**kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,_throttle=None,_high_volume=False,retry_on_temp_error=True,error_wait=ERROR_WAIT,max_error_wait=MAX_ERROR_WAIT,**kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
         If batch == True, return the dictionary that would be used in a batch
         command.
         """
+
+        if not _throttle:
+            _throttle = DEFAULT_THROTTLE
+
         if batch:
             ret = {"method": http_verb,
                    "path": uri.split("parse.com")[1]}
@@ -160,19 +238,21 @@ class ParseBase(object):
                 data = None
 
         if not _high_volume:
-            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait)
+            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle)
         else:
-            return cls._concurrent_execute(http_verb,url,data,headers)
+            return cls._concurrent_execute(http_verb,url,data,headers,_throttle)
 
     @classmethod
-    def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait):
+    def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle):
         request = Request(url, data, headers)
         request.get_method = lambda: http_verb
 
         start_time = datetime.datetime.now()
+        
         while 1:
             try:
-                response = urlopen(request)
+                with _throttle:
+                    response = urlopen(request)
                 return json.loads(response.read())
             except HTTPError as e:
                 exc = {
@@ -198,7 +278,7 @@ class ParseBase(object):
                     raise
 
     @classmethod
-    def _concurrent_execute(cls,http_verb,url,data,headers):
+    def _concurrent_execute(cls,http_verb,url,data,headers,_throttle):
         # Error handling in grequests is non-existent. We just try three times and call it a day
         reqs = []
         for offset in xrange(0,MAX_PARSE_OFFSET+1000,1000):
@@ -216,7 +296,8 @@ class ParseBase(object):
         cur_reqs = reqs[:]
         res = {'results':[],'count':0}
         for i in xrange(0,3):
-            grequests.map(cur_reqs)
+            with _throttle.calls_per(len(cur_reqs)):
+                grequests.map(cur_reqs)
             c = cur_reqs[:]
             for i in c:
                 if i.response:
@@ -256,7 +337,7 @@ class ParseBatcher(ParseBase):
     """Batch together create, update or delete operations"""
     ENDPOINT_ROOT = '/'.join((API_ROOT, 'batch'))
 
-    def batch(self, methods,_using=None,_as_user=None):
+    def batch(self, methods,_using=None,_as_user=None,_throttle=None):
         """
         Given a list of create, update or delete methods to call, call all
         of them in a single batch operation.
@@ -268,7 +349,7 @@ class ParseBatcher(ParseBase):
             # calls execute() with the batch flag, which doesn't actually do a callout
             queries, callbacks = zip(*[m(batch=True) for m in thisBatch])
             # perform all the operations in one batch
-            responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user)
+            responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user,_throttle=_throttle)
             # perform the callbacks with the response data (updating the existing
             # objets, etc)
             for callback, response in zip(callbacks, responses):
@@ -276,10 +357,12 @@ class ParseBatcher(ParseBase):
                     raise core.ParseError('Error: %s' % response['error'])
                 callback(response["success"])
 
-    def batch_save(self, objects,_using=None,_as_user=None):
+    def batch_save(self, objects,_using=None,_as_user=None,_throttle=None):
         """save a list of objects in one operation"""
-        self.batch([o.save for o in objects],_using=_using,_as_user=_as_user)
+        self.batch([o.save for o in objects],_using=_using,_as_user=_as_user,_throttle=_throttle)
 
-    def batch_delete(self, objects,_using=None,_as_user=None):
+    def batch_delete(self, objects,_using=None,_as_user=None,_throttle=None):
         """delete a list of objects in one operation"""
-        self.batch([o.delete for o in objects],_using=_using,_as_user=_as_user)
+        self.batch([o.delete for o in objects],_using=_using,_as_user=_as_user,_throttle=_throttle)
+
+

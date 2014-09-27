@@ -11,10 +11,11 @@ import subprocess
 import unittest
 import datetime
 import random
+import time
 
 
 from core import ResourceRequestNotFound
-from connection import register, get_keys,ParseBatcher
+from connection import register, get_keys,ParseBatcher,TimeBasedThrottle
 from datatypes import GeoPoint, Object, Function
 from user import User
 import query
@@ -500,6 +501,29 @@ class TestUser(unittest.TestCase):
         self.assert_(Game.Query.filter(title="Candyland").exists() == False)
         self.assert_(Game.Query.as_user(user).filter(title="Candyland").exists() == True)
         self.assert_(Game.Query.filter(title="Candyland").as_user(user).exists() == True)
+
+class TimeBasedThrottleTest(unittest.TestCase):
+    def testLimits(self):
+        t = TimeBasedThrottle(limit=4,period=1)
+        count = 0
+        start = time.time()
+        for i in xrange(0,12):
+            with t:
+                count += 1
+        end = time.time()
+        self.assertEqual(int(end-start),3)
+        self.assertEqual(count,12)
+
+    def testLimitsAndMultiIterations(self):
+        t = TimeBasedThrottle(limit=4,period=1,calls_per_iteration=2)
+        count = 0
+        start = time.time()
+        for i in xrange(0,8):
+            with t:
+                count += 2
+        end = time.time()
+        self.assertEqual(int(end-start),4)
+        self.assertEqual(count,16)
 
 
 
