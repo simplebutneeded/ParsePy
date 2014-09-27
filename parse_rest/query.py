@@ -21,7 +21,7 @@ except NameError:
     unicode = str
 
 class QueryResourceDoesNotExist(Exception):
-    '''Query returned no results'''
+    '''Query returndtBCnOCz4bed no results'''
     pass
 
 
@@ -57,6 +57,11 @@ class QueryManager(object):
         values = kw.get('_values')
         if values:
             del kw['_values']
+        throttle = None
+        if kw.has_key('_throttle'):
+            throttle = kw.get('_throttle')
+            del kw['_throttle']
+
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
 
@@ -70,11 +75,11 @@ class QueryManager(object):
         if not high_volume:
             while not done:
                 if not (values_list or values):
-                    new_res = [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                    new_res = [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')]
                 elif values_list:
                     new_res = [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
                 elif values:
-                    new_res = klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')
+                    new_res = klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')
                     
                 results.extend(new_res)
                 if len(new_res) < limit or limit < 1000:
@@ -90,17 +95,28 @@ class QueryManager(object):
         else:
             # high_volume will cause 11 requests to be send concurently
             if not (values_list or values):
-                return [klass(_using=using,_as_user=as_user,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
+                return [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,_high_volume=high_volume,**kw).get('results')]
             elif values_list:
-                return [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')]
+                return [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,_high_volume=high_volume,**kw).get('results')]
             elif values:
-                return klass.GET(uri, _app_id=using,_user=as_user,_high_volume=high_volume,**kw).get('results')
+                return klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,_high_volume=high_volume,**kw).get('results')
 
     def _count(self, **kw):
-        using = kw.get('_using')
-        as_user = kw.get('_as_user')
+        using = None
+        if kw.has_key('_using'):
+            using = kw.get('_using')
+            del kw['_using']
+        as_user = None
+        if kw.has_key('_as_user'):
+            as_user = kw.get('_as_user')
+            del kw['_as_user']
+        throttle = None
+        if kw.has_key('_throttle'):
+            throttle = kw.get('_throttle')
+            del kw['_throttle']
+        
         kw.update({"count": 1, "limit": 0})
-        return self.model_class.GET(self.model_class.ENDPOINT_ROOT,_app_id=using,_user=as_user,
+        return self.model_class.GET(self.model_class.ENDPOINT_ROOT,_app_id=using,_user=as_user,_throttle=throttle,
                                         **kw).get('count')
     def using(self,using):
         return Queryset(self,_using=using)
@@ -111,6 +127,9 @@ class QueryManager(object):
     def high_volume(self,val):
         return Queryst(self,_high_volume=val)
 
+    def throttle(self,val):
+        return Queryst(self,_throttle=val)
+        
     def include(self,val):
         return self.all().include(val)
 
@@ -174,13 +193,14 @@ class Queryset(object):
                 return parameter[:-len(underscored)], op
         return parameter, None
 
-    def __init__(self, manager,_using=None,_as_user=None,_high_volume=False,_values_list=None,_values=None):
+    def __init__(self, manager,_using=None,_as_user=None,_throttle=None,_high_volume=False,_values_list=None,_values=None):
         self._manager = manager
         self._where = collections.defaultdict(dict)
 
         self._options = {}
         self._using = _using
         self._as_user = _as_user
+        self._throttle = _throttle
         self._high_volume = _high_volume
         self._values_list = _values_list
         self._values=_values
@@ -210,6 +230,8 @@ class Queryset(object):
             options['_using'] = self._using
         if self._as_user:
             options['_as_user'] = self._as_user
+        if self._throttle:
+            options['_throttle'] = self._throttle
         if self._high_volume:
             options['_high_volume'] = self._high_volume
         
@@ -228,7 +250,7 @@ class Queryset(object):
         return self._manager._fetch(**options)
 
     def _clone(self):
-        clone = Queryset(manager=self._manager,_using=self._using,_as_user=self._as_user,_high_volume=self._high_volume,
+        clone = Queryset(manager=self._manager,_using=self._using,_as_user=self._as_user,_throttle=self._throttle,_high_volume=self._high_volume,
                          _values_list=self._values_list,_values=self._values)
         clone._options = copy.deepcopy(self._options)
         clone._where = copy.deepcopy(self._where)
@@ -243,6 +265,11 @@ class Queryset(object):
         clone = self._clone()
         clone._as_user = user
         return clone
+
+    def throttle(self,throttle):
+        clone = self._clone()
+        clone._throttle = throttle
+        return clone 
 
     def high_volume(self,val):
         clone = self._clone()
