@@ -272,13 +272,14 @@ class TestQuery(object):
             s.save(_using=self.USING)
 
     def testValuesList(self):
-        res = [x for x in Game.Query.values_list('score','player_name')]
-        expected = set([s,'John Doe'] for s in range(1,6) )
+        res = [x for x in GameScore.Query.using(self.USING).values_list('score','player_name')]
 
-        self.assert_(set(res) == expected)
+        expected = [[s,u'John Doe'] for s in range(1,6) ]
 
-        res = [x for x in Game.Query.all().values_list('score','player_name')]
-        self.assert_(set(res) == expected)        
+        self.assertEqual(sorted(res,key=lambda x: x[0]), sorted(expected,key=lambda x: x[0]))
+
+        res = [x for x in GameScore.Query.using(self.USING).all().values_list('score','player_name')]
+        self.assertEqual(sorted(res,key=lambda x: x[0]), sorted(expected,key=lambda x: x[0]))
 
 
     def testExists(self):
