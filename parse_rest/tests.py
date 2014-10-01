@@ -11,10 +11,11 @@ import subprocess
 import unittest
 import datetime
 import random
+import time
 
 
 from core import ResourceRequestNotFound
-from connection import register, get_keys,ParseBatcher
+from connection import register, get_keys,ParseBatcher,TimeBasedThrottle
 from datatypes import GeoPoint, Object, Function
 from user import User
 import query
@@ -64,23 +65,23 @@ GLOBAL_JSON_TEXT = """{
 
 
 class Game(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class GameScore(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class City(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class Review(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class CollectedItem(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class TestObject(object):
@@ -90,11 +91,13 @@ class TestObject(object):
         city_name = getattr(self.city, 'name', None)
         game_score = getattr(self.score, 'score', None)
         if city_name:
-            for city in City.Query.using(self.USING).all():
-                city.delete(_using=self.USING)
+            old = [x for x in City.Query.using(self.USING).all()]
+            if old:
+                ParseBatcher().batch_delete(old,_using=self.USING)
         if game_score:
-            for score in GameScore.Query.using(self.USING).all():
-                score.delete(_using=self.USING)
+            old = [x for x in GameScore.Query.using(self.USING).all()]
+            if old:
+                ParseBatcher().batch_delete(old,_using=self.USING)
         
     def testCanInitialize(self):
         self.assert_(self.score.score == self.SCORE_SCORE, 'Could not set score')
@@ -151,7 +154,7 @@ class TestObject(object):
 
         # get the object, see if it has saved
 
-        qs = GameScore.Query.using(self.USING).get(objectId=self.score.objectId)
+        qs = GameScore.Query.using(self.USING).include('item').get(objectId=self.score.objectId)
         self.assert_(isinstance(qs.item, Object),
                      "Associated CollectedItem is not an object")
         self.assert_(qs.item.type == "Sword",
@@ -257,10 +260,12 @@ class TestQuery(object):
     def setUp(self):
         """save a bunch of GameScore objects with varying scores"""
         # first delete any that exist
-        for s in GameScore.Query.using(self.USING).all():
-            s.delete(_using=self.USING)
-        for g in Game.Query.all():
-            g.delete(_using=self.USING)
+        old = [x for x in GameScore.Query.using(self.USING).all()]
+        if old:
+            ParseBatcher().batch_delete(old,_using=self.USING)
+        old = [x for x in Game.Query.all()]
+        if old:
+            ParseBatcher().batch_delete(old,_using=self.USING)
 
         self.game = Game(title="Candyland")
         self.game.save(_using=self.USING)
@@ -269,17 +274,17 @@ class TestQuery(object):
             GameScore(score=s, player_name='John Doe', game=self.game)
                         for s in range(1, 6)]
         for s in self.scores:
-            s.save(_using=self.USING)
+            ParseBatcher().batch_save(self.scores,_using=self.USING)
 
     def testValuesList(self):
         res = [x for x in GameScore.Query.using(self.USING).values_list('score','player_name')]
+        
+        expected = [[s.score,s.player_name] for s in self.scores]
 
-        expected = [[s,u'John Doe'] for s in range(1,6) ]
-
-        self.assertEqual(sorted(res,key=lambda x: x[0]), sorted(expected,key=lambda x: x[0]))
+        self.assertEqual(sorted(res,key=lambda x:x[0]), sorted(expected,key=lambda x:x[0]))
 
         res = [x for x in GameScore.Query.using(self.USING).all().values_list('score','player_name')]
-        self.assertEqual(sorted(res,key=lambda x: x[0]), sorted(expected,key=lambda x: x[0]))
+        self.assertEqual(sorted(res,key=lambda x:x[0]), sorted(expected,key=lambda x:x[0]))        
 
 
     def testExists(self):
@@ -371,8 +376,9 @@ class TestQuery(object):
 
     def tearDown(self):
         """delete all GameScore and Game objects"""
-        for s in GameScore.Query.using(self.USING).all():
-            s.delete(_using=self.USING)
+        old = [x for x in GameScore.Query.using(self.USING).all()]
+        if old:
+            ParseBatcher().batch_delete(old,_using=self.USING)
         self.game.delete(_using=self.USING)
 
 class TestStandardQuery(TestQuery,unittest.TestCase):
@@ -502,7 +508,105 @@ class TestUser(unittest.TestCase):
         self.assert_(Game.Query.as_user(user).filter(title="Candyland").exists() == True)
         self.assert_(Game.Query.filter(title="Candyland").as_user(user).exists() == True)
 
+class TimeBasedThrottleTest(unittest.TestCase):
+    USING = None
+    def tearDown(self):
+        recs =  [x for x in Game.Query.using(self.USING).all()]
+        if recs:
+            ParseBatcher().batch_delete(recs,_using=self.USING)
+    
+    def testLimits(self):
+        t = TimeBasedThrottle(limit=4,period=1)
+        count = 0
+        start = time.time()
+        for i in xrange(0,12):
+            with t:
+                count += 1
+        end = time.time()
+        self.assertGreater(end-start, 3)
+        self.assertLess(end-start, 4)
+        self.assertEqual(count,12)
+    
+    def testLimitsAndMultiIterations(self):
+        t = TimeBasedThrottle(limit=4,period=1,calls_per_iteration=2)
+        count = 0
+        start = time.time()
+        for i in xrange(0,8):
+            with t:
+                count += 2
+        end = time.time()
+        self.assertGreater(end-start, 4)
+        self.assertLess(end-start, 5)
+        self.assertEqual(count,16)
 
+    
+            
+
+    def testSave(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        self.scores = [
+            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+
+        start = time.time()
+        for i in self.scores:
+            i.save(_throttle=t, _using=self.USING)
+        end = time.time()
+        self.assertTrue( (end-start) >= 3)
+
+    def testDelete(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        self.scores = [
+            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+        ParseBatcher().batch_save(self.scores,_using=self.USING)
+            
+        start = time.time()
+        for i in self.scores:
+            i.delete(_throttle=t, _using=self.USING)
+        end = time.time()
+        self.assertTrue( (end-start) >= 3)
+
+    def _quickGet(self,query,objectId):
+        try:
+            return query.get(objectId=objectId)
+        except:
+            return None
+
+    def testQueries(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        start = time.time()
+        q = Game.Query.using(self.USING).throttle(t)
+        for i in xrange(0,6):
+            self._quickGet(q,'123')
+        end = time.time()
+        self.assertTrue( (end-start) >= 3)
+    
+    def testBatchSave(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        g = Game(name='John Doe')
+        g.save(_using=self.USING)
+        g.name='joe2'
+        
+        count = 0
+        start = time.time()
+
+        for i in xrange(0,6):
+            ParseBatcher().batch_save([g],_using=self.USING,_throttle=t)
+        end = time.time()
+        self.assertGreater(end-start,3)
+    
+    def testBatchDelete(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        self.scores = [
+            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+        ParseBatcher().batch_save(self.scores,_using=self.USING)
+            
+        start = time.time()
+        for i in self.scores:
+            ParseBatcher().batch_delete([i],_throttle=t, _using=self.USING)
+        end = time.time()
+        self.assertTrue( (end-start) >= 3)
+    
+    
 
 
 if __name__ == "__main__":
