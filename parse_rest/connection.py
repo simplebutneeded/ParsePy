@@ -26,6 +26,7 @@ import urllib2
 import grequests
 import re
 import collections
+import math
 
 import logging
 LOGGER = logging.getLogger(__name__)
@@ -125,6 +126,8 @@ class TimeBasedThrottle(Throttle):
         self.period = period
 
         self.calls = collections.deque()
+        # start with a full queue so we don't count the 0 second
+        self.calls.extend(time.time() for x in xrange(0,limit))
         self.calls_per_iteration = calls_per_iteration
 
     def __unicode__(self):
@@ -133,17 +136,13 @@ class TimeBasedThrottle(Throttle):
     def __enter__(self):
         
         while self.calls_per_iteration > self.max_calls:
-            for qtrSecs in xrange(1,4,1):
-                # IMO, it's rude to block for large chunks of time
-                time.sleep(.25)
+            time.sleep(.25)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
             self.calls.extend([time.time() for x in xrange(0,self.calls_per_iteration)])
             self.clean_calls()
-
-        
 
     def calls_per(self,num_calls):
         """
@@ -154,9 +153,9 @@ class TimeBasedThrottle(Throttle):
         return clone
 
     def clean_calls(self):
-        # get rid of old, no longer relevant calls
-        
-        oldest_needed = time.time()-self.period
+        # get rid of old, no longer relevant calls. 
+        now = time.time()
+        oldest_needed = now-self.period
         while True and self.calls:
             if self.calls[0] < oldest_needed:
                 self.calls.popleft()
@@ -166,7 +165,7 @@ class TimeBasedThrottle(Throttle):
     @property
     def max_calls(self):
         self.clean_calls()
-        return self.limit - len(self.calls)
+        return int(math.floor(float(self.limit) - len(self.calls)))
 
 DEFAULT_THROTTLE = NullThrottle()
 

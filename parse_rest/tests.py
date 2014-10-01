@@ -65,23 +65,23 @@ GLOBAL_JSON_TEXT = """{
 
 
 class Game(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class GameScore(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class City(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class Review(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class CollectedItem(Object):
-    pass
+    ACL={"*":{'read':True,'write':True}}
 
 
 class TestObject(object):
@@ -503,6 +503,12 @@ class TestUser(unittest.TestCase):
         self.assert_(Game.Query.filter(title="Candyland").as_user(user).exists() == True)
 
 class TimeBasedThrottleTest(unittest.TestCase):
+    USING = None
+    def tearDown(self):
+        recs =  [x for x in Game.Query.using(self.USING).all()]
+        if recs:
+            ParseBatcher().batch_delete(recs,_using=self.USING)
+    
     def testLimits(self):
         t = TimeBasedThrottle(limit=4,period=1)
         count = 0
@@ -511,9 +517,10 @@ class TimeBasedThrottleTest(unittest.TestCase):
             with t:
                 count += 1
         end = time.time()
-        self.assertEqual(int(end-start),3)
+        self.assertGreater(end-start, 3)
+        self.assertLess(end-start, 4)
         self.assertEqual(count,12)
-
+    
     def testLimitsAndMultiIterations(self):
         t = TimeBasedThrottle(limit=4,period=1,calls_per_iteration=2)
         count = 0
@@ -522,10 +529,78 @@ class TimeBasedThrottleTest(unittest.TestCase):
             with t:
                 count += 2
         end = time.time()
-        self.assertEqual(int(end-start),4)
+        self.assertGreater(end-start, 4)
+        self.assertLess(end-start, 5)
         self.assertEqual(count,16)
 
+    
+            
 
+    def testSave(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        self.scores = [
+            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+
+        start = time.time()
+        for i in self.scores:
+            i.save(_throttle=t, _using=self.USING)
+        end = time.time()
+        self.assertTrue( (end-start) >= 3)
+
+    def testDelete(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        self.scores = [
+            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+        ParseBatcher().batch_save(self.scores,_using=self.USING)
+            
+        start = time.time()
+        for i in self.scores:
+            i.delete(_throttle=t, _using=self.USING)
+        end = time.time()
+        self.assertTrue( (end-start) >= 3)
+
+    def _quickGet(self,query,objectId):
+        try:
+            return query.get(objectId=objectId)
+        except:
+            return None
+
+    def testQueries(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        start = time.time()
+        q = Game.Query.using(self.USING).throttle(t)
+        for i in xrange(0,6):
+            self._quickGet(q,'123')
+        end = time.time()
+        self.assertTrue( (end-start) >= 3)
+    
+    def testBatchSave(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        g = Game(name='John Doe')
+        g.save(_using=self.USING)
+        g.name='joe2'
+        
+        count = 0
+        start = time.time()
+
+        for i in xrange(0,6):
+            ParseBatcher().batch_save([g],_using=self.USING,_throttle=t)
+        end = time.time()
+        self.assertGreater(end-start,3)
+    
+    def testBatchDelete(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        self.scores = [
+            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+        ParseBatcher().batch_save(self.scores,_using=self.USING)
+            
+        start = time.time()
+        for i in self.scores:
+            ParseBatcher().batch_delete([i],_throttle=t, _using=self.USING)
+        end = time.time()
+        self.assertTrue( (end-start) >= 3)
+    
+    
 
 
 if __name__ == "__main__":

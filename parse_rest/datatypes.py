@@ -334,11 +334,12 @@ class ParseResource(ParseBase, Pointer):
             self.createdAt = self.updatedAt = response_dict['createdAt']
             self.objectId = response_dict['objectId']
             self.id = self.objectId
+            return self
 
         if batch:
             return response, call_back
         else:
-            call_back(response)
+            return call_back(response)
 
     def _update(self, batch=False,_using=None,_as_user=None,_throttle=None):
         response = self.__class__.PUT(self._absolute_url, batch=batch,
