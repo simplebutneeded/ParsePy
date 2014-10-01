@@ -131,7 +131,7 @@ class TimeBasedThrottle(Throttle):
         self.calls_per_iteration = calls_per_iteration
 
     def __unicode__(self):
-        return u'<TimeBasedThrottle: Period=%s,limit=%s' % (self.period,self.limit)
+        return u'<TimeBasedThrottle: Period=%s,limit=%s, remaining: %s' % (self.period,self.limit,self.max_calls)
 
     def __enter__(self):
         
