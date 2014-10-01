@@ -91,11 +91,13 @@ class TestObject(object):
         city_name = getattr(self.city, 'name', None)
         game_score = getattr(self.score, 'score', None)
         if city_name:
-            for city in City.Query.using(self.USING).all():
-                city.delete(_using=self.USING)
+            old = [x for x in City.Query.using(self.USING).all()]
+            if old:
+                ParseBatcher().batch_delete(old,_using=self.USING)
         if game_score:
-            for score in GameScore.Query.using(self.USING).all():
-                score.delete(_using=self.USING)
+            old = [x for x in GameScore.Query.using(self.USING).all()]
+            if old:
+                ParseBatcher().batch_delete(old,_using=self.USING)
         
     def testCanInitialize(self):
         self.assert_(self.score.score == self.SCORE_SCORE, 'Could not set score')
@@ -152,7 +154,7 @@ class TestObject(object):
 
         # get the object, see if it has saved
 
-        qs = GameScore.Query.using(self.USING).get(objectId=self.score.objectId)
+        qs = GameScore.Query.using(self.USING).include('item').get(objectId=self.score.objectId)
         self.assert_(isinstance(qs.item, Object),
                      "Associated CollectedItem is not an object")
         self.assert_(qs.item.type == "Sword",
@@ -258,10 +260,12 @@ class TestQuery(object):
     def setUp(self):
         """save a bunch of GameScore objects with varying scores"""
         # first delete any that exist
-        for s in GameScore.Query.using(self.USING).all():
-            s.delete(_using=self.USING)
-        for g in Game.Query.all():
-            g.delete(_using=self.USING)
+        old = [x for x in GameScore.Query.using(self.USING).all()]
+        if old:
+            ParseBatcher().batch_delete(old,_using=self.USING)
+        old = [x for x in Game.Query.all()]
+        if old:
+            ParseBatcher().batch_delete(old,_using=self.USING)
 
         self.game = Game(title="Candyland")
         self.game.save(_using=self.USING)
@@ -270,16 +274,17 @@ class TestQuery(object):
             GameScore(score=s, player_name='John Doe', game=self.game)
                         for s in range(1, 6)]
         for s in self.scores:
-            s.save(_using=self.USING)
+            ParseBatcher().batch_save(self.scores,_using=self.USING)
 
     def testValuesList(self):
-        res = [x for x in Game.Query.values_list('score','player_name')]
-        expected = set([s,'John Doe'] for s in range(1,6) )
+        res = [x for x in GameScore.Query.using(self.USING).values_list('score','player_name')]
+        
+        expected = [[s.score,s.player_name] for s in self.scores]
 
-        self.assert_(set(res) == expected)
+        self.assertEqual(sorted(res,key=lambda x:x[0]), sorted(expected,key=lambda x:x[0]))
 
-        res = [x for x in Game.Query.all().values_list('score','player_name')]
-        self.assert_(set(res) == expected)        
+        res = [x for x in GameScore.Query.using(self.USING).all().values_list('score','player_name')]
+        self.assertEqual(sorted(res,key=lambda x:x[0]), sorted(expected,key=lambda x:x[0]))        
 
 
     def testExists(self):
@@ -371,8 +376,9 @@ class TestQuery(object):
 
     def tearDown(self):
         """delete all GameScore and Game objects"""
-        for s in GameScore.Query.using(self.USING).all():
-            s.delete(_using=self.USING)
+        old = [x for x in GameScore.Query.using(self.USING).all()]
+        if old:
+            ParseBatcher().batch_delete(old,_using=self.USING)
         self.game.delete(_using=self.USING)
 
 class TestStandardQuery(TestQuery,unittest.TestCase):
