@@ -125,10 +125,10 @@ class QueryManager(object):
         return Queryset(self,_as_user=as_user)
 
     def high_volume(self,val):
-        return Queryst(self,_high_volume=val)
+        return Queryset(self,_high_volume=val)
 
     def throttle(self,val):
-        return Queryst(self,_throttle=val)
+        return Queryset(self,_throttle=val)
         
     def include(self,val):
         return self.all().include(val)
