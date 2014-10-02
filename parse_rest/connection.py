@@ -185,7 +185,8 @@ class ParseBase(object):
             _throttle = DEFAULT_THROTTLE
 
         if isinstance(_throttle,NullThrottle):
-            raise Exception('No throttle')
+            import pdb
+            pdb.set_trace()
 
         if batch:
             ret = {"method": http_verb,
