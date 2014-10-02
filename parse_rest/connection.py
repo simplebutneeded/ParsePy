@@ -181,7 +181,7 @@ class ParseBase(object):
         command.
         """
 
-        if not _throttle:
+        if not _throttle and not batch:
             _throttle = DEFAULT_THROTTLE
 
         if isinstance(_throttle,NullThrottle):
