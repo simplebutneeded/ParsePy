@@ -184,6 +184,9 @@ class ParseBase(object):
         if not _throttle:
             _throttle = DEFAULT_THROTTLE
 
+        if isinstance(_throttle,NullThrottle):
+            raise Exception('No throttle')
+
         if batch:
             ret = {"method": http_verb,
                    "path": uri.split("parse.com")[1]}
