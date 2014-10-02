@@ -107,13 +107,15 @@ class Throttle(object):
         return self.__str__()
 
 class NullThrottle(Throttle):
-    
+    batch_limit = 1000000
+
     def __enter__(self,*args,**kwargs):
         return
     def __exit__(self,exc_type, exc_val, exc_tb):
         return
     def calls_per(self,*args,**kwargs):
         return self
+
 
 class TimeBasedThrottle(Throttle):
     def __init__(self,limit,period,calls_per_iteration=1):
@@ -163,6 +165,10 @@ class TimeBasedThrottle(Throttle):
                 break
 
     @property
+    def batch_limit(self):
+        return self.limit / self.period
+
+    @property
     def max_calls(self):
         self.clean_calls()
         return int(math.floor(float(self.limit) - len(self.calls)))
@@ -183,10 +189,6 @@ class ParseBase(object):
 
         if not _throttle and not batch:
             _throttle = DEFAULT_THROTTLE
-
-        if isinstance(_throttle,NullThrottle):
-            import pdb
-            pdb.set_trace()
 
         if batch:
             ret = {"method": http_verb,
@@ -224,6 +226,12 @@ class ParseBase(object):
 
         data = kw and json.dumps(kw) or "{}"
         
+        num_operations = 1
+        if 'requests' in kw:
+            # Batch operation. Note how many operations are being done for lame
+            # API limit purposes
+            num_operations=len(kw['requests'])
+
         if http_verb == 'GET' and data:
             new_url = '%s?%s' % (url,urlencode(kw))
 
@@ -241,12 +249,12 @@ class ParseBase(object):
                 data = None
 
         if not _high_volume:
-            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle)
+            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations)
         else:
-            return cls._concurrent_execute(http_verb,url,data,headers,_throttle)
+            return cls._concurrent_execute(http_verb,url,data,headers,_throttle,num_operations)
 
     @classmethod
-    def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle):
+    def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations):
         request = Request(url, data, headers)
         request.get_method = lambda: http_verb
 
@@ -254,7 +262,7 @@ class ParseBase(object):
         
         while 1:
             try:
-                with _throttle:
+                with _throttle.calls_per(num_operations):
                     response = urlopen(request)
                 return json.loads(response.read())
             except HTTPError as e:
@@ -281,7 +289,7 @@ class ParseBase(object):
                     raise
 
     @classmethod
-    def _concurrent_execute(cls,http_verb,url,data,headers,_throttle):
+    def _concurrent_execute(cls,http_verb,url,data,headers,_throttle,num_operations):
         # Error handling in grequests is non-existent. We just try three times and call it a day
         reqs = []
         for offset in xrange(0,MAX_PARSE_OFFSET+1000,1000):
@@ -298,8 +306,11 @@ class ParseBase(object):
 
         cur_reqs = reqs[:]
         res = {'results':[],'count':0}
+        if (num_operations * len(cur_reqs)) > _throttle.batch_limit:
+            raise Exception("Unable to do concurrent execution since total calls of %s is higher than allowed by throttle at %s" * (num_operations * len(cur_reqs), _throttle.batch_limit))
+
         for i in xrange(0,3):
-            with _throttle.calls_per(len(cur_reqs)):
+            with _throttle.calls_per(num_operations * len(cur_reqs)):
                 grequests.map(cur_reqs)
             c = cur_reqs[:]
             for i in c:
@@ -346,8 +357,15 @@ class ParseBatcher(ParseBase):
         of them in a single batch operation.
         """
 
+        # Parse sucks and counts each object in a batch request as a separate call
+        # against its limits. We obviously don't want a batch size greater than our
+        # per-second limit
+        limit = 1000000
+        if _throttle:
+            limit = _throttle.batch_limit
+
         # parse has a 50 record limit in batch mode
-        for thisBatch in chunks(methods,50):
+        for thisBatch in chunks(methods,min(limit,50)):
             # It's not necessary to pass in using and as_users here since this eventually
             # calls execute() with the batch flag, which doesn't actually do a callout
             queries, callbacks = zip(*[m(batch=True) for m in thisBatch])

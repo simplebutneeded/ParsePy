@@ -594,6 +594,20 @@ class TimeBasedThrottleTest(unittest.TestCase):
         end = time.time()
         self.assertGreater(end-start,3)
     
+    def testBatchSaveAtOnce(self):
+        t = TimeBasedThrottle(limit=2,period=1)
+        g = Game(name='John Doe')
+        g.save(_using=self.USING)
+        g.name='joe2'
+        
+        count = 0
+        start = time.time()
+
+        ParseBatcher().batch_save([g]*6,_using=self.USING,_throttle=t)
+        end = time.time()
+        self.assertGreater(end-start,3)
+
+
     def testBatchDelete(self):
         t = TimeBasedThrottle(limit=2,period=1)
         self.scores = [
