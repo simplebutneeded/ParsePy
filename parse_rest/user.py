@@ -89,9 +89,9 @@ class User(ParseResource):
         return User(**response_data)
 
     @staticmethod
-    def login(username, passwd):
+    def login(username, passwd,app_id=None):
         login_url = '/'.join([API_ROOT, 'login'])
-        return User(**User.GET(login_url, username=username, password=passwd))
+        return User(**User.GET(login_url, username=username, password=passwd,_app_id=app_id))
 
     @staticmethod
     def login_auth(auth):
