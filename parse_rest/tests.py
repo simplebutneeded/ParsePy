@@ -17,7 +17,7 @@ import time
 from core import ResourceRequestNotFound
 from connection import register, get_keys,ParseBatcher,TimeBasedThrottle
 from datatypes import GeoPoint, Object, Function
-from user import User
+from user import User, Role
 import query
 
 try:
@@ -430,6 +430,8 @@ class TestFunction(unittest.TestCase):
         self.assertAlmostEqual(ret["result"], 4.5)
 
 
+
+
 class TestUser(unittest.TestCase):
     USERNAME = "dhelmet%s@spaceballs.com" % random.randint(0,10000000)
     PASSWORD = "12345"
@@ -507,6 +509,54 @@ class TestUser(unittest.TestCase):
         self.assert_(Game.Query.filter(title="Candyland").exists() == False)
         self.assert_(Game.Query.as_user(user).filter(title="Candyland").exists() == True)
         self.assert_(Game.Query.filter(title="Candyland").as_user(user).exists() == True)
+
+class TestRole(unittest.TestCase):
+    USING = None
+
+    def setUp(self):
+        self.username = TestUser.USERNAME
+        self.password = TestUser.PASSWORD
+
+        self.master_user = User()
+        self.master_user.set_master(True)
+
+        try:
+            self.user = User.login(self.username, self.password)
+        except ResourceRequestNotFound:
+            # if the user doesn't exist, that's fine
+            self.user = User.signup(self.username, self.password)
+        existing = Role.Query.as_user(self.master_user).using(self.USING).all()
+        if existing:
+            ParseBatcher().batch_delete(existing,_using=self.USING,_as_user=self.master_user)
+
+    def tearDown(self):
+        if self.user:
+            self.user.delete()
+        existing = Role.Query.as_user(self.master_user).using(self.USING).all()
+        if existing:
+            ParseBatcher().batch_delete(existing,_using=self.USING,_as_user=self.master_user)
+
+    def testNoRoles(self):
+        self.assertEqual(0,len(Role.Query.as_user(self.user).using(self.USING).all()))
+
+    def testAddRole(self):
+        admin = Role()
+        admin.name='testrole-%s' % random.randint(0,10000000)
+        admin.ACL={'*':{'read':True}}
+        admin.save(_as_user=self.master_user)
+
+        admin.addRelation('users',self.user,_as_user=self.master_user)
+
+        self.myRoles = [x for x in Role.Query.as_user(self.user).using(self.USING).filter(users=self.user)]
+        self.assertEqual(1,len(self.myRoles))
+
+    def testRemoveRole(self):
+        self.testAddRole()
+
+        self.myRoles[0].removeRelation('users',self.user,_as_user=self.master_user)
+
+        myRolesNow = Role.Query.as_user(self.user).using(self.USING).filter(users=self.user)
+        self.assertEqual(0,len(myRolesNow))
 
 class TimeBasedThrottleTest(unittest.TestCase):
     USING = None

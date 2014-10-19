@@ -16,6 +16,7 @@ from core import ResourceRequestLoginRequired
 from connection import API_ROOT
 from datatypes import ParseResource, ParseType
 from query import QueryManager
+from . import datatypes
 
 
 def login_required(func):
@@ -39,6 +40,7 @@ class User(ParseResource):
 
     # 
     _is_master = False
+    parse_table = '_User'
 
     # Used when creating a user from python for use in as_user() calls
     _password = None
@@ -119,3 +121,9 @@ class User(ParseResource):
 
 
 User.Query = QueryManager(User)
+
+class Role(datatypes.Object):
+    ENDPOINT_ROOT = '/'.join([API_ROOT, 'roles'])
+    parse_table = '_Role'
+
+Role.Query = QueryManager(Role)

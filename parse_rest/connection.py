@@ -255,6 +255,7 @@ class ParseBase(object):
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations):
+        
         request = Request(url, data, headers)
         request.get_method = lambda: http_verb
 

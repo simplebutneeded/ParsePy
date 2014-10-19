@@ -51,7 +51,9 @@ class ParseType(object):
 
     @staticmethod
     def convert_to_parse(python_object, as_pointer=False):
-        is_object = isinstance(python_object, Object)
+        from .user import User
+        
+        is_object = isinstance(python_object, Object) or isinstance(python_object,User)
 
         if is_object and not as_pointer:
             d = dict([(k, ParseType.convert_to_parse(v, as_pointer=True))
@@ -446,3 +448,28 @@ class Object(ParseResource):
             }
         self.__class__.PUT(self._absolute_url, _app_id=_using,_user=_as_user,_throttle=_throttle,**payload)
         self.__dict__[key] += amount
+
+    def removeRelation(self, key, objs,_using=None,_as_user=None,_throttle=None):
+        self.manageRelation('RemoveRelation', key, objs,_using=_using,_as_user=_as_user,_throttle=_throttle)
+
+    def addRelation(self, key, objs,_using=None,_as_user=None,_throttle=None):
+        self.manageRelation('AddRelation', key, objs,_using=_using,_as_user=_as_user,_throttle=_throttle)
+
+    def manageRelation(self, action, key, objs,_using=None,_as_user=None,_throttle=None):
+        if not (isinstance(objs,list) or isinstance(objs,tuple)):
+            objs = [objs]
+        objects = [{
+                    "__type": "Pointer",
+                    "className": obj.parse_table or obj.__class__.__name__,
+                    "objectId": obj.objectId
+                    } for obj in objs]
+
+        payload = {
+            key: {
+                 "__op": action,
+                 "objects": objects
+                }
+            }
+        self.__class__.PUT(self._absolute_url, _app_id=_using,_user=_as_user,_throttle=_throttle,**payload)
+        self.__dict__[key] = ''
+
