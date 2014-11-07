@@ -510,6 +510,18 @@ class TestUser(unittest.TestCase):
         self.assert_(Game.Query.as_user(user).filter(title="Candyland").exists() == True)
         self.assert_(Game.Query.filter(title="Candyland").as_user(user).exists() == True)
 
+    def testBecome(self):
+        u = self._get_user()
+        res = User.become(user_id=u.objectId)
+        self.assertTrue(res)
+        self.assertEqual(res.sessionToken, u.sessionToken)
+        self.assertEqual(res.objectId, u.objectId)
+
+    def testBecomeBad(self):
+        u = self._get_user()
+        res = User.become(user_id='asfd')
+        self.assertEqual(None,res)
+
 class TestRole(unittest.TestCase):
     USING = None
 

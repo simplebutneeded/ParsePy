@@ -250,7 +250,7 @@ class Function(ParseBase):
         self.name = name
 
     def __call__(self, _using=None,_as_user=None,_throttle=None,**kwargs):
-        return self.POST('/' + self.name, _app_id=_using,_as_user=_as_user,_throttle=_throttle,**kwargs)
+        return self.POST('/' + self.name, _app_id=_using,_user=_as_user,_throttle=_throttle,**kwargs)
 
 
 class ParseResource(ParseBase, Pointer):

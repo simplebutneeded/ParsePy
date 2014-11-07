@@ -22,3 +22,18 @@ Parse.Cloud.define("averageStars", function(request, response) {
     }
   });
 });
+
+Parse.Cloud.define("sessionForUser", function(request, response) {
+    Parse.Cloud.useMasterKey();
+    
+    var query = new Parse.Query(Parse.User);
+    query.get(request.params.userId).then(
+      function(object) {
+        response.success({"session":object.getSessionToken()})
+      },
+      function(error) {
+        response.error({"detail":"User not found:"+error.message})
+      }
+    );
+});
+

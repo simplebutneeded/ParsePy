@@ -14,7 +14,7 @@
 
 from core import ResourceRequestLoginRequired
 from connection import API_ROOT
-from datatypes import ParseResource, ParseType
+from datatypes import ParseResource, ParseType,Function
 from query import QueryManager
 from . import datatypes
 
@@ -99,6 +99,24 @@ class User(ParseResource):
     def login_auth(auth):
         login_url = User.ENDPOINT_ROOT
         return User(**User.POST(login_url, authData=auth))
+
+    @staticmethod
+    def become(user_id,app_id=None):
+        """ Parse should support this natively. Of course, parse sucks and doesn't
+            To use this, you must implement sessionForUser in parse_rest/cloudcode/cloud/main.js
+        """
+        u = User()
+        u.set_master(True)
+        try:
+            f = Function('sessionForUser')
+            resp = f(userId=user_id,_using=app_id,_as_user=u)
+        except Exception as e:
+            return None
+        u.sessionToken = resp.get('result',{}).get('session')
+        u.objectId = user_id
+        if not u.sessionToken:
+            return None
+        return u
 
     @staticmethod
     def request_password_reset(email):
