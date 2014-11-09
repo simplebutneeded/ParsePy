@@ -24,8 +24,11 @@ Parse.Cloud.define("averageStars", function(request, response) {
 });
 
 Parse.Cloud.define("sessionForUser", function(request, response) {
+    if (!request.master) {
+      response.error({"detail":"must be called with master key"})
+    }
+
     Parse.Cloud.useMasterKey();
-    
     var query = new Parse.Query(Parse.User);
     query.get(request.params.userId).then(
       function(object) {

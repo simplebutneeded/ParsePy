@@ -446,7 +446,10 @@ class TestUser(unittest.TestCase):
 
     def _destroy_user(self):
         user = self._get_logged_user()
-        user and user.delete()
+        try:
+            user and user.delete()
+        except:
+            pass
 
     def _get_logged_user(self):
         if User.Query.filter(username=self.username).exists():
