@@ -49,7 +49,7 @@ class User(ParseResource):
     sessionToken = None
 
     def is_authenticated(self):
-        return self.sessionToken is not None
+        return self.is_master() or self.sessionToken is not None
 
     def authenticate(self, password=None, session_token=None):
         if self.is_authenticated(): return
