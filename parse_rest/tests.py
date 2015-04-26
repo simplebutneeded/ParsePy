@@ -284,7 +284,13 @@ class TestQuery(object):
         self.assertEqual(sorted(res,key=lambda x:x[0]), sorted(expected,key=lambda x:x[0]))
 
         res = [x for x in GameScore.Query.using(self.USING).all().values_list('score','player_name')]
-        self.assertEqual(sorted(res,key=lambda x:x[0]), sorted(expected,key=lambda x:x[0]))        
+        self.assertEqual(sorted(res,key=lambda x:x[0]), sorted(expected,key=lambda x:x[0]))
+    
+    def testKeys(self):
+        res = [x for x in GameScore.Query.using(self.USING).keys(['score',])]
+        self.assertEqual(None, getattr(res[0], 'player_name', None))
+        self.assertNotEqual(None, getattr(res[0], 'objectId', None))
+        self.assertNotEqual(None, getattr(res[0], 'score', None))
 
 
     def testExists(self):

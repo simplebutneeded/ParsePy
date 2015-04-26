@@ -23,7 +23,7 @@ import json
 import datetime
 import time
 import urllib2
-import grequests
+#import grequests
 import re
 import collections
 import math
@@ -250,8 +250,8 @@ class ParseBase(object):
 
         if not _high_volume:
             return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations)
-        else:
-            return cls._concurrent_execute(http_verb,url,data,headers,_throttle,num_operations)
+        #else:
+        #    return cls._concurrent_execute(http_verb,url,data,headers,_throttle,num_operations)
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations):
@@ -289,6 +289,8 @@ class ParseBase(object):
                     LOGGER.error('Temp errors for too long. Bailing due to: %s' % e)
                     raise
 
+    """
+    Parse changed their throttling scheme so this isn't useful anymore
     @classmethod
     def _concurrent_execute(cls,http_verb,url,data,headers,_throttle,num_operations):
         # Error handling in grequests is non-existent. We just try three times and call it a day
@@ -330,6 +332,7 @@ class ParseBase(object):
 
         # 3 attempts and they didn't succeed
         raise ConnectionException('%s of %s requests failed' % (len(cur_reqs),len(reqs)) )
+    """
 
     @classmethod
     def GET(cls, uri, **kw):

@@ -133,6 +133,9 @@ class QueryManager(object):
     def include(self,val):
         return self.all().include(val)
 
+    def keys(self, val):
+        return self.all().keys(val)
+
     def all(self):
         return Queryset(self)
 
@@ -244,6 +247,7 @@ class Queryset(object):
             # JSON encode WHERE values
             where = json.dumps(self._where)
             options.update({'where': where})
+        
         if count:
             return self._manager._count(**options)
 
@@ -280,6 +284,16 @@ class Queryset(object):
         clone = self._clone()
         clone._options['include'] = val
         return clone
+    
+    def keys(self, keyList):
+        if isinstance(basestring, keyList):
+            val = keyList
+        else:
+            val = ','.join(keyList)
+            
+        clone = self._clone()
+        clone._options['keys'] = val
+        return clone  
 
     def all(self):
         return self._clone()
