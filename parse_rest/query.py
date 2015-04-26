@@ -286,7 +286,7 @@ class Queryset(object):
         return clone
     
     def keys(self, keyList):
-        if isinstance(basestring, keyList):
+        if isinstance(keyList, basestring):
             val = keyList
         else:
             val = ','.join(keyList)
