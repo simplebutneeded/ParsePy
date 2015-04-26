@@ -46,6 +46,7 @@ class User(ParseResource):
     _password = None
     username = None
     objectId = None
+    sessionToken = None
 
     def is_authenticated(self):
         return self.sessionToken is not None
