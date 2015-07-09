@@ -10,7 +10,8 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+import logging
+LOGGER = logging.getLogger(__name__)
 
 from core import ResourceRequestLoginRequired
 from connection import API_ROOT
@@ -114,10 +115,12 @@ class User(ParseResource):
             f = Function('sessionForUser')
             resp = f(userId=user_id,_using=app_id,_as_user=u)
         except Exception as e:
+            LOGGER.error('become() received error {0}'.format(e))
             return None
         u.sessionToken = resp.get('result',{}).get('session')
         u.objectId = user_id
         if not u.sessionToken:
+            LOGGER.error('become did not receive sessionToken: {0}'.format(resp))
             return None
         return u
 
