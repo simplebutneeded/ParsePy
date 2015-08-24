@@ -367,14 +367,14 @@ class Queryset(object):
     # too lazy to put this in filter and it's a distinct enough operation
     def matchesQuery(self, fieldName, subquery):
         clone = self._clone()
-        clone._where[fieldName] = {'$inQuery':{'className': subquery._manager.model_class.parse_table or subquery._manager.model_class.__class__.__name__,
+        clone._where[fieldName] = {'$inQuery':{'className': subquery._manager.model_class.parse_table or subquery._manager.model_class.__name__,
                                                'where': subquery._where
                                                }} 
         return clone
 
     def doesNotMatchQuery(self, fieldName, subquery):
         clone = self._clone()
-        clone._where[fieldName] = {'$notInQuery':{'className': subquery._manager.model_class.parse_table or subquery._manager.model_class.__class__.__name__,
+        clone._where[fieldName] = {'$notInQuery':{'className': subquery._manager.model_class.parse_table or subquery._manager.model_class.__name__,
                                                'where': subquery._where
                                                }}
         return clone
