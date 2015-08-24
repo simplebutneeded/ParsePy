@@ -159,6 +159,12 @@ class QueryManager(object):
 
     def offset(self,val):
         return self.all().offset(val)
+    
+    def matchesQuery(self, fieldName, subquery):
+        return self.all().matchesQuery(fieldName, subquery)
+    
+    def doesNotMatchQuery(self, fieldName, subquery):
+        return self.all().doesNotMatchQuery(fieldName, subquery)
 
 
 class QuerysetMetaclass(type):
@@ -357,6 +363,21 @@ class Queryset(object):
         clone = self._clone()
         clone._values = args
         return clone
+    
+    # too lazy to put this in filter and it's a distinct enough operation
+    def matchesQuery(self, fieldName, subquery):
+        clone = self._clone()
+        clone._where[fieldName] = {'$inQuery':{'className': subquery._manager.model_class.parse_table or subquery._manager.model_class.__class__.__name__,
+                                               'where': subquery._where
+                                               }} 
+        return clone
 
+    def doesNotMatchQuery(self, fieldName, subquery):
+        clone = self._clone()
+        clone._where[fieldName] = {'$notInQuery':{'className': subquery._manager.model_class.parse_table or subquery._manager.model_class.__class__.__name__,
+                                               'where': subquery._where
+                                               }}
+        return clone
+     
     def __repr__(self):
         return unicode(self._fetch())
