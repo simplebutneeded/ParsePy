@@ -165,6 +165,9 @@ class QueryManager(object):
     
     def doesNotMatchQuery(self, fieldName, subquery):
         return self.all().doesNotMatchQuery(fieldName, subquery)
+        
+    def raw(self, whereKey, whereValue):
+        return self.all().raw(whereKey, whereValue)
 
 
 class QuerysetMetaclass(type):
