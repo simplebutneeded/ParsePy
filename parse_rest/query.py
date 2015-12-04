@@ -186,7 +186,7 @@ class Queryset(object):
     __metaclass__ = QuerysetMetaclass
 
     OPERATORS = [
-        'lt', 'lte', 'gt', 'gte', 'ne', 'in', 'nin', 'exists', 'select', 'dontSelect', 'all'
+        'lt', 'lte', 'gt', 'gte', 'ne', 'in', 'nin', 'exists', 'select', 'dontSelect', 'all', 'regex'
         ]
 
     @staticmethod
@@ -385,6 +385,12 @@ class Queryset(object):
                                                'where': subquery._where
                                                }}
         return clone
-     
+    
+    def raw(self, whereKey, whereVal):
+        # to support any random stuff
+        clone = self._clone()
+        clone._where[whereKey] = whereVal
+        return clone
+        
     def __repr__(self):
         return unicode(self._fetch())
