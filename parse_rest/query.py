@@ -196,11 +196,18 @@ class Queryset(object):
 
     @classmethod
     def extract_filter_operator(cls, parameter):
+        if not '__' in parameter:
+            return parameter, None
+        underscored = '__exact'
+        if parameter.endswith(underscored):
+            return parameter[:-len(underscored)], None
+            
         for op in cls.OPERATORS:
             underscored = '__%s' % op
             if parameter.endswith(underscored):
                 return parameter[:-len(underscored)], op
-        return parameter, None
+        
+        raise Exception('Unknown operator')
 
     def __init__(self, manager,_using=None,_as_user=None,_throttle=None,_high_volume=False,_values_list=None,_values=None):
         self._manager = manager
