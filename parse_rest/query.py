@@ -232,8 +232,13 @@ class Queryset(object):
 
     def __getitem__(self,key):
         options = copy.deepcopy(self._options)  # make a local copy
-        options['skip']=int(key)
-        options['limit']=1
+        if isinstance(key, slice):
+            # django slicing
+            options['skip'] = key.start
+            options['limit'] = key.stop-key.start
+        else:
+            options['skip']=int(key)
+            options['limit']=1
         return self._manager._fetch(**options)
 
     def serialize(self):
