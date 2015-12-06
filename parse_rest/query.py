@@ -189,7 +189,7 @@ class Queryset(object):
     __metaclass__ = QuerysetMetaclass
 
     OPERATORS = [
-        'lt', 'lte', 'gt', 'gte', 'ne', 'in', 'nin', 'exists', 'select', 'dontSelect', 'all', 'regex'
+        'lt', 'lte', 'gt', 'gte', 'ne', 'in', 'nin', 'exists', 'select', 'dontSelect', 'all', 'regex', 'ne'
         ]
 
     @staticmethod
