@@ -21,7 +21,10 @@ class TestCommand(Command):
 
 setup(
     name='parse_rest',
-    version='0.2.20151205',
+    version='0.2.20160126',
+    install_requires=[
+        'python-dateutil',
+    ],
     description='A client library for Parse.com\'.s REST API',
     url='https://github.com/dgrtwo/ParsePy',
     packages=['parse_rest'],

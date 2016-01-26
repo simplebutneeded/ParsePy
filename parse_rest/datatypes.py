@@ -13,6 +13,7 @@
 
 import base64
 import datetime
+import dateutil
 import copy
 import json
 
@@ -173,7 +174,8 @@ class Date(ParseType):
     @staticmethod
     def _from_str(date_str):
         """turn a ISO 8601 string into a datetime object"""
-        return datetime.datetime.strptime(date_str[:-1] + 'UTC', Date.FORMAT)
+        return dateutil.parser.parse(date_str)
+        #return datetime.datetime.strptime(date_str[:-1] + 'UTC', Date.FORMAT)
 
     def __init__(self, date):
         """Can be initialized either with a string or a datetime"""
