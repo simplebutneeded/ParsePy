@@ -327,7 +327,6 @@ class ParseResource(ParseBase, Pointer):
             self.ACL = copy.copy(self.DEFAULT_ACL)
             if _as_user:
                 if self.ACL.has_key('__USER__'):
-                    # TODO: Make not broken for master user
                     if not _as_user.is_authenticated():
                         _as_user.authenticate()
                     if getattr(_as_user, 'id', None):
