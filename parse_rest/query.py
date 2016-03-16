@@ -93,13 +93,25 @@ class QueryManager(object):
                     done = True
             return results
         else:
-            # high_volume will cause 11 requests to be send concurently
-            if not (values_list or values):
-                return [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,_high_volume=high_volume,**kw).get('results')]
-            elif values_list:
-                return [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,_high_volume=high_volume,**kw).get('results')]
-            elif values:
-                return klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,_high_volume=high_volume,**kw).get('results')
+            lastObjId = None
+            kw['order'] = 'objectId'
+            if lastObjId:
+                kw['where']['objectId'] = {'$gt':lastObjId}
+            while not done:
+                if not (values_list or values):
+                    new_res = [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')]
+                elif values_list:
+                    new_res = [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                elif values:
+                    new_res = klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')
+                    
+                results.extend(new_res)
+                if len(new_res) < limit or limit < 1000:
+                    done = True
+                else:
+                    lastObjId = results[-1].objectId
+
+            return results
 
     def _count(self, **kw):
         using = None
