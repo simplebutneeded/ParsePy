@@ -248,10 +248,7 @@ class ParseBase(object):
                 url = new_url
                 data = None
 
-        if not _high_volume:
-            return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations)
-        #else:
-        #    return cls._concurrent_execute(http_verb,url,data,headers,_throttle,num_operations)
+        return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations)
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations):
