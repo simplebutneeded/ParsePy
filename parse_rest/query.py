@@ -95,9 +95,10 @@ class QueryManager(object):
         else:
             lastObjId = None
             kw['order'] = 'objectId'
-            if lastObjId:
-                kw['where']['objectId'] = {'$gt':lastObjId}
             while not done:
+                if lastObjId:
+                    kw['where']['objectId'] = {'$gt':lastObjId}
+                    
                 if not (values_list or values):
                     new_res = [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')]
                 elif values_list:
