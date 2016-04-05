@@ -97,7 +97,10 @@ class QueryManager(object):
             kw['order'] = 'objectId'
             while not done:
                 if lastObjId:
-                    kw['where']['objectId'] = {'$gt':lastObjId}
+                    # Where is actually a JSON string
+                    where = json.loads(kw.get('where','{}'))
+                    where['objectId'] = {'$gt':lastObjId}
+                    kw['where'] = json.dumps(where)
                     
                 if not (values_list or values):
                     new_res = [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')]
