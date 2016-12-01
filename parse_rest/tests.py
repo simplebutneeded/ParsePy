@@ -26,6 +26,7 @@ except ImportError:
     sys.exit('You must create a settings_local.py file of this format:\n\nKEYS = {\n\t\t' \
              "'myappid': {\n\t\t\t"\
              "'REST_API_KEY':'myrestkey',\n\t\t\t"\
+             "'API_ROOT':'optional root',\n\t\t\t"\
              "'MASTER_KEY':'mymasterkey'\n\t\t"\
              "},"
              "'myotherappid': {\n\t\t\t"\
@@ -45,6 +46,7 @@ for app_id in settings_local.KEYS:
         app_id,
         settings_local.KEYS.get(app_id).get('REST_API_KEY'),
         master_key = settings_local.KEYS.get(app_id).get('MASTER_KEY'),
+        api_root = settings_local.KEYS.get(app_id).get('API_ROOT'),
         )
 
 GLOBAL_JSON_TEXT = """{

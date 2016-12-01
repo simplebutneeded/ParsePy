@@ -243,7 +243,7 @@ class File(ParseType):
 
     url = property(lambda self: self._file_url)
     name = property(lambda self: self._name)
-    _absolute_url = property(lambda self: self._api_url)
+    _absolute_url = property(lambda self: self.api_root_for(self._using)+self._api_url)
 
 
 class Function(ParseBase):
@@ -370,7 +370,7 @@ class ParseResource(ParseBase, Pointer):
             call_back(response)
 
     _absolute_url = property(
-        lambda self: '/'.join([self.__class__.ENDPOINT_ROOT, self.objectId])
+        lambda self: self.api_root_for(self._using) + '/'.join([self.__class__.ENDPOINT_ROOT, self.objectId])
         )
 
     objectId = property(_get_object_id, _set_object_id)

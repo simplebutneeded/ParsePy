@@ -19,6 +19,7 @@ except ImportError:
     from urllib.error import HTTPError
     from urllib.parse import urlencode
 
+from urlparse import urlparse
 import json
 import datetime
 import time
@@ -33,7 +34,11 @@ LOGGER = logging.getLogger(__name__)
 
 from . import core
 
-API_ROOT = 'https://api.parse.com/1'
+# Changed to relative URL so we can add the customer-specific API_ROOT late in the game
+#API_ROOT = 'https://api.parse.com/1'
+PARSECOM_API_ROOT = 'https://api.parse.com/1'
+API_ROOT = ''
+
 ACCESS_KEYS = {}
 
 # Longest we'll wait for temp network or request errors to clear
@@ -177,7 +182,21 @@ DEFAULT_THROTTLE = NullThrottle()
 
 class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
+    _using = None # required now that we do customer-specific domains
+    
+    @classmethod
+    def api_root_for(cls, app_id):
+        keys = get_keys(app_id)
+        
+        if not keys or not 'app_id' in keys:
+            raise core.ParseError('Missing connection credentials')
 
+        api_root = keys.get('api_root', PARSECOM_API_ROOT)
+        if not api_root:
+            return PARSECOM_API_ROOT
+        else:
+            return api_root
+            
     @classmethod
     def execute(cls, uri, http_verb, extra_headers=None, batch=False, _app_id=None,_user=None,_throttle=None,_high_volume=False,retry_on_temp_error=True,error_wait=ERROR_WAIT,max_error_wait=MAX_ERROR_WAIT,**kw):
         """
@@ -186,25 +205,19 @@ class ParseBase(object):
         If batch == True, return the dictionary that would be used in a batch
         command.
         """
-
+        
         if not _throttle and not batch:
             _throttle = DEFAULT_THROTTLE
 
-        if batch:
-            ret = {"method": http_verb,
-                   "path": uri.split("parse.com")[1]}
-            if kw:
-                ret["body"] = kw
-            return ret
-
         keys = get_keys(_app_id)
         
-        if not keys or not 'app_id' in keys or not 'rest_key' in keys:
+        if not keys or not 'app_id' in keys:
             raise core.ParseError('Missing connection credentials')
 
         app_id = keys.get('app_id')
         rest_key = keys.get('rest_key')
         master_key = keys.get('master_key')
+        api_root = cls.api_root_for(app_id)
 
         headers = extra_headers or {}
         headers['Content-type']='application/json'
@@ -221,9 +234,26 @@ class ParseBase(object):
                 if not _user.is_authenticated():
                     _user.authenticate()
                 headers['X-Parse-Session-Token']=_user.sessionToken
+        pa = uri
+        if not pa.startswith(cls.ENDPOINT_ROOT):
+            pa = cls.ENDPOINT_ROOT + pa
+        if pa.startswith('/'):
+            url = api_root+pa
+        else:
+            url = api_root
 
-        url = uri if uri.startswith(API_ROOT) else cls.ENDPOINT_ROOT + uri
-
+        if batch:
+            ret = {"method": http_verb,
+                   "path": urlparse(uri).path}
+            if kw:
+                ret["body"] = kw
+            
+            if PARSECOM_API_ROOT in url:
+                # parse.com requires the path prefix
+                ret['path'] = '/1'+ret['path']
+            
+            return ret
+        
         data = kw and json.dumps(kw) or "{}"
         
         num_operations = 1
@@ -247,7 +277,7 @@ class ParseBase(object):
             else:
                 url = new_url
                 data = None
-
+        
         return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations)
 
     @classmethod
