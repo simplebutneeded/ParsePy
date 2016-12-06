@@ -184,6 +184,8 @@ class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
     _using = None # required now that we do customer-specific domains
     
+    NON_CLASS_PREFIXED_ENDPOINTS=['/login', '/logout', '/requestPasswordReset']
+    
     @classmethod
     def api_root_for(cls, app_id):
         keys = get_keys(app_id)
@@ -235,10 +237,12 @@ class ParseBase(object):
                     _user.authenticate()
                 headers['X-Parse-Session-Token']=_user.sessionToken
         pa = uri
-        if not pa.startswith(cls.ENDPOINT_ROOT):
+        if not pa.startswith('http') and not pa.startswith(cls.ENDPOINT_ROOT) and not urlparse(pa).path in cls.NON_CLASS_PREFIXED_ENDPOINTS:
             pa = cls.ENDPOINT_ROOT + pa
         if pa.startswith('/'):
             url = api_root+pa
+        elif pa.startswith('http'):
+            url = pa
         else:
             url = api_root
 
@@ -282,7 +286,6 @@ class ParseBase(object):
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations):
-        
         request = Request(url, data, headers)
         request.get_method = lambda: http_verb
 

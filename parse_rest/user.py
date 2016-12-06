@@ -86,7 +86,7 @@ class User(ParseResource):
     @login_required
     def delete(self):
         session_header = {'X-Parse-Session-Token': self.sessionToken}
-        return self.DELETE(self._absolute_url, extra_headers=session_header)
+        return self.DELETE('/users/'+self.objectId, extra_headers=session_header)
 
     @staticmethod
     def signup(username, password, **kw):

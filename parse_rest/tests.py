@@ -217,7 +217,7 @@ class TestObjectUsing(TestObject,unittest.TestCase):
         self.city = City(
                 name=self.CITY_NAME, location=GeoPoint(self.CITY_LAT,-122.395)
                 )
-        self.USING = settings_local.KEYS.keys()[1]
+        self.USING = settings_local.KEYS.keys()[0]
 
 
 class TestTypes(unittest.TestCase):
@@ -392,7 +392,7 @@ class TestQuery(object):
 class TestStandardQuery(TestQuery,unittest.TestCase):
     pass
 class TestQueryUsing(TestQuery,unittest.TestCase):
-    USING = settings_local.KEYS.keys()[1]
+    USING = settings_local.KEYS.keys()[0]
 
 class TestFunction(unittest.TestCase):
     def setUp(self):
@@ -448,7 +448,7 @@ class TestUser(unittest.TestCase):
     def _get_user(self):
         try:
             user = User.signup(self.username, self.password)
-        except:
+        except Exception as ex:
             user = User.Query.get(username=self.username)
         return user
 
@@ -504,7 +504,6 @@ class TestUser(unittest.TestCase):
         # add phone number and save
         user.phone = phone_number
         user.save()
-
         self.assert_(User.Query.filter(phone=phone_number).exists(),
                      'Failed to update user data. New info not on Parse')
     
