@@ -252,7 +252,7 @@ class ParseBase(object):
             if kw:
                 ret["body"] = kw
             
-            if PARSECOM_API_ROOT in url:
+            if PARSECOM_API_ROOT[:-1] in url:
                 # parse.com requires the path prefix
                 ret['path'] = '/1'+ret['path']
             
@@ -313,7 +313,7 @@ class ParseBase(object):
 
                 now = datetime.datetime.now()
                 if max_error_wait == 0 or (now - start_time).sections <= max_error_wait:
-                    LOGGER.warn('Temp error during execute(). Waiting %s: %s' % (error_wait,e))
+                    LOGGER.warn(u'Temp error during execute(). Waiting %s: %s' % (error_wait,e))
                     time.sleep(error_wait)
                 else:
                     LOGGER.error('Temp errors for too long. Bailing due to: %s' % e)
