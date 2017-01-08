@@ -252,7 +252,7 @@ class ParseBase(object):
             if kw:
                 ret["body"] = kw
             
-            if PARSECOM_API_ROOT[:-1] in url:
+            if PARSECOM_API_ROOT[:-1] in url and not ret['path'].startswith('/1/'):
                 # parse.com requires the path prefix
                 ret['path'] = '/1'+ret['path']
             

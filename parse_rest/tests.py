@@ -167,7 +167,7 @@ class TestObject(object):
         scores = [GameScore(score=s, player_name=self.SCORE_NAME, cheat_mode=False)
                     for s in range(5)]
         batcher = ParseBatcher()
-        batcher.batch_save(scores,_using=self.USING)
+        res = batcher.batch_save(scores,_using=self.USING)
         
         self.assert_(GameScore.Query.using(self.USING).filter(player_name=self.SCORE_NAME).count() == 5,
                      "batch_save didn't create objects")
