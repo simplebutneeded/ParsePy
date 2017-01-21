@@ -252,10 +252,16 @@ class ParseBase(object):
             if kw:
                 ret["body"] = kw
             
-            if PARSECOM_API_ROOT[:-1] in url and not ret['path'].startswith('/1/'):
-                # parse.com requires the path prefix
-                ret['path'] = '/1'+ret['path']
-            
+            if PARSECOM_API_ROOT[:-1] in url or PARSECOM_API_ROOT[:-1] in api_root:
+                if not ret['path'].startswith('/1/'):
+                    # parse.com requires the path prefix
+                    ret['path'] = '/1'+ret['path']
+            else:
+                # If it's not parse.com, make sure this isn't here. This is just
+                # precautionary
+                if ret['path'].startswith('/1'):
+                    ret['path'] = ret['path'][2:]
+
             return ret
         
         data = kw and json.dumps(kw) or "{}"
@@ -397,12 +403,13 @@ class ParseBatcher(ParseBase):
         limit = 1000000
         if _throttle:
             limit = _throttle.batch_limit
-
+        
         # parse has a 50 record limit in batch mode
         for thisBatch in chunks(methods,min(limit,50)):
             # It's not necessary to pass in using and as_users here since this eventually
             # calls execute() with the batch flag, which doesn't actually do a callout
             queries, callbacks = zip(*[m(batch=True) for m in thisBatch])
+
             # perform all the operations in one batch
             responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user,_throttle=_throttle)
             # perform the callbacks with the response data (updating the existing
