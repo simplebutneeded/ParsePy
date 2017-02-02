@@ -74,12 +74,17 @@ class QueryManager(object):
         results = []
         if not high_volume:
             while not done:
+                res = klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw)
+                # apparently parse server can return a signular result instead their normal format
+                if not res.has_key('results'):
+                    res = {'results':[res]}
+                    
                 if not (values_list or values):
-                    new_res = [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')]
+                    new_res = [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in res.get('results')]
                 elif values_list:
-                    new_res = [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                    new_res = [[it[y] for y in values_list] for it in res.get('results')]
                 elif values:
-                    new_res = klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')
+                    new_res = res.get('results')
                     
                 results.extend(new_res)
                 if len(new_res) < limit or limit < 1000:
@@ -101,13 +106,18 @@ class QueryManager(object):
                     where = json.loads(kw.get('where','{}'))
                     where['objectId'] = {'$gt':lastObjId}
                     kw['where'] = json.dumps(where)
+                
+                res = klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw)
+                # apparently parse server can return a signular result instead their normal format
+                if not res.has_key('results'):
+                    res = {'results':[res]}
                     
                 if not (values_list or values):
-                    new_res = [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')]
+                    new_res = [klass(_using=using,_as_user=as_user,_throttle=throttle,**it) for it in res.get('results')]
                 elif values_list:
-                    new_res = [[it[y] for y in values_list] for it in klass.GET(uri, _app_id=using,_user=as_user,**kw).get('results')]
+                    new_res = [[it[y] for y in values_list] for it in res.get('results')]
                 elif values:
-                    new_res = klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw).get('results')
+                    new_res = res.get('results')
                     
                 results.extend(new_res)
                 if len(new_res) < limit or limit < 1000:
