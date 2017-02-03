@@ -273,20 +273,8 @@ class ParseBase(object):
             num_operations=len(kw['requests'])
 
         if http_verb == 'GET' and data:
-            new_url = '%s?%s' % (url,urlencode(kw))
-
-            # deal with parse's crappy URL length limit that throws 
-            # 502s without any other helpful message. The current real limit seems
-            # to be ~7800
-            if len(new_url) > 5000:
-                http_verb = 'POST'
-                headers['X-HTTP-Method-Override']='GET'
-                if 'limit' in kw:
-                    # it appears that limit needs to be in the URL?!
-                    url += '?%s' % urlencode({'limit':kw.get('limit')})                
-            else:
-                url = new_url
-                data = None
+            url = '%s?%s' % (url,urlencode(kw))
+            data = None
         
         return cls._serial_execute(http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations)
 
