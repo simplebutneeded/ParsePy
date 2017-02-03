@@ -21,7 +21,7 @@ class TestCommand(Command):
 
 setup(
     name='parse_rest',
-    version='0.2.20170203',
+    version='0.2.20170204',
     install_requires=[
         'python-dateutil',
     ],
