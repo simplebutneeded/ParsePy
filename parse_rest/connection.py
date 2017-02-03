@@ -280,7 +280,8 @@ class ParseBase(object):
             # to be ~7800
             if len(new_url) > 5000:
                 http_verb = 'POST'
-                data['_method'] = 'GET'
+                kw['_method'] = 'GET'
+                data = json.dumps(kw)
                 if 'limit' in kw:
                     # it appears that limit needs to be in the URL?!
                     url += '?%s' % urlencode({'limit':kw.get('limit')})                
