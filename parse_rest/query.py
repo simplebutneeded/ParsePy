@@ -123,7 +123,11 @@ class QueryManager(object):
                 if len(new_res) < limit or limit < 1000:
                     done = True
                 else:
-                    lastObjId = results[-1].objectId
+                    if isinstance(results[-1], dict):
+                        # if they called values)()
+                        lastObjId = results[-1]['objectId']
+                    else:
+                        lastObjId = results[-1].objectId
 
             return results
 
