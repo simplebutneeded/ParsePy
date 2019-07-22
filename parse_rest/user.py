@@ -10,12 +10,14 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+import logging
+LOGGER = logging.getLogger(__name__)
 
 from core import ResourceRequestLoginRequired
 from connection import API_ROOT
-from datatypes import ParseResource, ParseType
+from datatypes import ParseResource, ParseType,Function
 from query import QueryManager
+from . import datatypes
 
 
 def login_required(func):
@@ -37,11 +39,24 @@ class User(ParseResource):
     PROTECTED_ATTRIBUTES = ParseResource.PROTECTED_ATTRIBUTES + [
         'username', 'sessionToken']
 
+    # 
+    _is_master = False
+    parse_table = '_User'
+
+    # Used when creating a user from python for use in as_user() calls
+    _password = None
+    username = None
+    objectId = None
+    sessionToken = None
+
     def is_authenticated(self):
-        return self.sessionToken is not None
+        return self.is_master() or self.sessionToken is not None
 
     def authenticate(self, password=None, session_token=None):
         if self.is_authenticated(): return
+
+        if password is None and self._password:
+            password = self._password
 
         if password is not None:
             self = User.login(self.username, password)
@@ -50,21 +65,28 @@ class User(ParseResource):
         if user.objectId == self.objectId and user.sessionToken == session_token:
             self.sessionToken = session_token
 
+    def set_master(self,master):
+        self._is_master = master
+    def is_master(self):
+        return self._is_master
+        
     @login_required
     def session_header(self):
         return {'X-Parse-Session-Token': self.sessionToken}
 
     @login_required
-    def save(self):
-        session_header = {'X-Parse-Session-Token': self.sessionToken}
+    def save(self,_using=None,_as_user=None,batch=False,_throttle=None):
+        extra  ={}
+        if not _as_user:
+            extra = {'X-Parse-Session-Token': self.sessionToken}
         url = self._absolute_url
         data = self._to_native()
-        return self.__class__.PUT(url, extra_headers=session_header, **data)
+        return self.__class__.PUT(url, _app_id=_using, _user=_as_user, batch=batch, _throttle=_throttle, extra_headers=extra, **data)
 
     @login_required
     def delete(self):
         session_header = {'X-Parse-Session-Token': self.sessionToken}
-        return self.DELETE(self._absolute_url, extra_headers=session_header)
+        return self.DELETE('/users/'+self.objectId, extra_headers=session_header)
 
     @staticmethod
     def signup(username, password, **kw):
@@ -73,14 +95,34 @@ class User(ParseResource):
         return User(**response_data)
 
     @staticmethod
-    def login(username, passwd):
+    def login(username, passwd,app_id=None):
         login_url = '/'.join([API_ROOT, 'login'])
-        return User(**User.GET(login_url, username=username, password=passwd))
+        return User(**User.GET(login_url, username=username, password=passwd,_app_id=app_id))
 
     @staticmethod
     def login_auth(auth):
         login_url = User.ENDPOINT_ROOT
         return User(**User.POST(login_url, authData=auth))
+
+    @staticmethod
+    def become(user_id,app_id=None):
+        """ Parse should support this natively. Of course, parse sucks and doesn't
+            To use this, you must implement sessionForUser in parse_rest/cloudcode/cloud/main.js
+        """
+        u = User()
+        u.set_master(True)
+        try:
+            f = Function('sessionForUser')
+            resp = f(userId=user_id,_using=app_id,_as_user=u)
+        except Exception as e:
+            LOGGER.error('become() received error {0}'.format(e))
+            return None
+        u.sessionToken = resp.get('result',{}).get('session')
+        u.objectId = user_id
+        if not u.sessionToken:
+            LOGGER.error('become did not receive sessionToken: {0}'.format(resp))
+            return None
+        return u
 
     @staticmethod
     def request_password_reset(email):
@@ -103,3 +145,9 @@ class User(ParseResource):
 
 
 User.Query = QueryManager(User)
+
+class Role(datatypes.Object):
+    ENDPOINT_ROOT = '/'.join([API_ROOT, 'roles'])
+    parse_table = '_Role'
+
+Role.Query = QueryManager(Role)

@@ -14,7 +14,12 @@
 
 class ParseError(Exception):
     '''Base exceptions from requests made to Parse'''
-    pass
+    def __init__(self, *args,**kwargs):
+        self.args = args
+        self.kwargs = kwargs
+    def __str__(self):
+        return '%s: %s %s' % (self.__class__.__name__,repr(self.args),repr(self.kwargs))
+
 
 
 class ResourceRequestBadRequest(ParseError):
