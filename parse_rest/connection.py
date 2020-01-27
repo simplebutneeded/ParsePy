@@ -32,7 +32,7 @@ import math
 import logging
 LOGGER = logging.getLogger(__name__)
 
-from . import core
+import core
 
 # Changed to relative URL so we can add the customer-specific API_ROOT late in the game
 #API_ROOT = 'https://api.parse.com/1'

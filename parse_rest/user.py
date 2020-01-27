@@ -11,13 +11,14 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import logging
+logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 
 from core import ResourceRequestLoginRequired
 from connection import API_ROOT
 from datatypes import ParseResource, ParseType,Function
 from query import QueryManager
-from . import datatypes
+import datatypes
 
 
 def login_required(func):
