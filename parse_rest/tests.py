@@ -10,7 +10,7 @@ import sys
 import subprocess
 import unittest
 import datetime
-import random
+import uuid
 import time
 
 
@@ -438,17 +438,19 @@ class TestFunction(unittest.TestCase):
         self.assertAlmostEqual(ret["result"], 4.5)
 
 
+class ConfigureRandomUser():
+    def setUp(self):
+        self.username = "dhelmet%s@spaceballs.com" % uuid.uuid4().hex
+        self.password = "12345"
 
 
-class TestUser(unittest.TestCase):
-    USERNAME = "dhelmet%s@spaceballs.com" % random.randint(0,10000000)
-    PASSWORD = "12345"
+class TestUser(ConfigureRandomUser, unittest.TestCase):
     game = None
 
     def _get_user(self):
         try:
             user = User.signup(self.username, self.password)
-        except Exception as ex:
+        except:
             user = User.Query.get(username=self.username)
         return user
 
@@ -466,31 +468,30 @@ class TestUser(unittest.TestCase):
             return self._get_user()
 
     def setUp(self):
-        self.username = TestUser.USERNAME
-        self.password = TestUser.PASSWORD
+        super(TestUser, self).setUp()
 
         try:
-            u = User.login(self.USERNAME, self.PASSWORD)
+            u = User.login(self.username, self.password)
+            u.delete()
         except ResourceRequestNotFound:
             # if the user doesn't exist, that's fine
-            return
-        u.delete()
+            pass
 
     def tearDown(self):
         if self.game:
             try:
                 self._get_user()
-                user = User.login(self.username,self.password)
+                user = User.login(self.username, self.password)
                 self.game.delete(_as_user=user)
             except:
                 pass
-        self._destroy_user()
-    
+
     def testCanSignUp(self):
         self._destroy_user()
         user = User.signup(self.username, self.password)
         self.assert_(user is not None)
         self.assert_(user.username == self.username)
+        self._destroy_user()
 
     def testCanLogin(self):
         self._get_user()  # User should be created here.
@@ -506,38 +507,39 @@ class TestUser(unittest.TestCase):
         user.save()
         self.assert_(User.Query.filter(phone=phone_number).exists(),
                      'Failed to update user data. New info not on Parse')
-    
+        self._destroy_user()
+
     def testCanCreateRecord(self):
-        self._get_user()
-        user = User.login(self.username,self.password)
+        user = self._get_user()
 
         self.game = Game(title="Candyland")
-        self.game.ACL = {user.objectId:{'read':True}}
+        self.game.ACL = {user.objectId: {'read': True}}
         self.game.save(_as_user=user)
 
-        
         self.assert_(Game.Query.filter(title="Candyland").exists() == False)
         self.assert_(Game.Query.as_user(user).filter(title="Candyland").exists() == True)
         self.assert_(Game.Query.filter(title="Candyland").as_user(user).exists() == True)
+        self._destroy_user()
 
     def testBecome(self):
         u = self._get_user()
         res = User.become(user_id=u.objectId)
         self.assertTrue(res)
-        self.assertEqual(res.sessionToken, u.sessionToken)
+        self.assertTrue(res.sessionToken)
         self.assertEqual(res.objectId, u.objectId)
 
     def testBecomeBad(self):
         u = self._get_user()
         res = User.become(user_id='asfd')
-        self.assertEqual(None,res)
+        self.assertEqual(None, res)
+        self._destroy_user()
 
-class TestRole(unittest.TestCase):
+
+class TestRole(ConfigureRandomUser, unittest.TestCase):
     USING = None
 
     def setUp(self):
-        self.username = TestUser.USERNAME
-        self.password = TestUser.PASSWORD
+        super(TestRole, self).setUp()
 
         self.master_user = User()
         self.master_user.set_master(True)
@@ -563,8 +565,8 @@ class TestRole(unittest.TestCase):
 
     def testAddRole(self):
         admin = Role()
-        admin.name='testrole-%s' % random.randint(0,10000000)
-        admin.ACL={'*':{'read':True}}
+        admin.name = 'testrole-%s' % uuid.uuid4().hex
+        admin.ACL = {'*': {'read': True}}
         admin.save(_as_user=self.master_user)
 
         admin.addRelation('users',self.user,_as_user=self.master_user)

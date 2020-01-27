@@ -319,7 +319,7 @@ class ParseBase(object):
                     raise
 
                 now = datetime.datetime.now()
-                if max_error_wait == 0 or (now - start_time).sections <= max_error_wait:
+                if max_error_wait == 0 or (now - start_time).total_seconds() <= max_error_wait:
                     LOGGER.warn(u'Temp error during execute(). Waiting %s: %s' % (error_wait,e))
                     time.sleep(error_wait)
                 else:
