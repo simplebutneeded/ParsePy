@@ -11,15 +11,16 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from builtins import str as new_str, object
+from future.utils import with_metaclass
+from past.builtins import basestring
 import base64
 import datetime
-import dateutil
 import dateutil.parser
 import copy
-import json
 
-from connection import API_ROOT, ParseBase
-from query import QueryManager
+from .connection import API_ROOT, ParseBase
+from .query import QueryManager
 
 
 class ParseType(object):
@@ -59,9 +60,9 @@ class ParseType(object):
 
         if is_object and not as_pointer:
             d = dict([(k, ParseType.convert_to_parse(v, as_pointer=True))
-                         for k, v in python_object._editable_attrs.items()
+                         for k, v in list(python_object._editable_attrs.items())
                          ])
-            for k,v in python_object.__class__.__dict__.items():
+            for k, v in list(python_object.__class__.__dict__.items()):
                 if isinstance(v,ForeignKey):
                     obj = getattr(python_object,'_'+k+'_obj',None)
                     if not obj:
@@ -123,7 +124,7 @@ class ForeignKey(object):
         return obj
     def __set__(self, instance, value):
         #instance.__dict__[self.name] = value
-        if isinstance(value,basestring):
+        if isinstance(value, basestring):
             setattr(instance,'_'+self.name+'_id',value)
         else:
             setattr(instance,'_'+self.name+'_obj',value)
@@ -182,7 +183,7 @@ class Date(ParseType):
         """Can be initialized either with a string or a datetime"""
         if isinstance(date, datetime.datetime):
             self._date = date
-        elif isinstance(date, unicode):
+        elif isinstance(date, new_str):
             self._date = Date._from_str(date)
 
     def _to_native(self):
@@ -199,7 +200,7 @@ class Binary(ParseType):
 
     def __init__(self, encoded_string):
         self._encoded = encoded_string
-        self._decoded = str(base64.b64decode(self._encoded))
+        self._decoded = new_str(base64.b64decode(self._encoded))
 
     def _to_native(self):
         return {'__type': 'Bytes', 'base64': self._encoded}
@@ -272,10 +273,10 @@ class ParseResource(ParseBase, Pointer):
     def _editable_attrs(self):
         protected_attrs = self.__class__.PROTECTED_ATTRIBUTES
         allowed = lambda a: a not in protected_attrs and not a.startswith('_')
-        return dict([(k, v) for k, v in self.__dict__.items() if allowed(k)])
+        return dict([(k, v) for k, v in list(self.__dict__.items()) if allowed(k)])
 
     def __init__(self, _using=None,_as_user=None,_throttle=None,**kw):
-        for key, value in kw.items():
+        for key, value in list(kw.items()):
             a = ParseType.convert_from_parse(value,_using=_using,_as_user=_as_user,_throttle=_throttle)
             setattr(self, key, a)
         self._using = _using
@@ -327,7 +328,7 @@ class ParseResource(ParseBase, Pointer):
         if not hasattr(self,'ACL') or self.ACL is None:
             self.ACL = copy.copy(self.DEFAULT_ACL)
             if _as_user:
-                if self.ACL.has_key('__USER__'):
+                if '__USER__' in self.ACL:
                     if not _as_user.is_authenticated():
                         _as_user.authenticate()
                     if getattr(_as_user, 'id', None):
@@ -378,7 +379,7 @@ class ParseResource(ParseBase, Pointer):
     updatedAt = property(_get_updated_datetime, _set_updated_datetime)
 
     def __repr__(self):
-        return '<%s:%s>' % (unicode(self.parse_table or self.__class__.__name__), self.objectId)   
+        return '<%s:%s>' % (new_str(self.parse_table or self.__class__.__name__), self.objectId)
 
 class ObjectMetaclass(type):
     def __new__(cls, name, bases, dct):
@@ -388,8 +389,7 @@ class ObjectMetaclass(type):
         return cls
 
 
-class Object(ParseResource):
-    __metaclass__ = ObjectMetaclass
+class Object(with_metaclass(ObjectMetaclass, ParseResource)):
     parse_table = None
     ENDPOINT_ROOT = '/'.join([API_ROOT, 'classes'])
 
@@ -426,7 +426,7 @@ class Object(ParseResource):
                 'objectId':self.objectId,
                 'createdAt':self.createdAt,
                 'updatedAt':self.updatedAt}
-        for key,val in self.__dict__.items():
+        for key, val in list(self.__dict__.items()):
             if key.startswith('_'):
                 continue
             if isinstance(val,ParseResource):

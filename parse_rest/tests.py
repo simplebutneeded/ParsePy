@@ -4,7 +4,9 @@
 """
 Contains unit tests for the Python Parse REST API wrapper
 """
+from __future__ import print_function, absolute_import
 
+from builtins import range, object
 import os
 import sys
 import subprocess
@@ -14,14 +16,14 @@ import uuid
 import time
 
 
-from core import ResourceRequestNotFound
-from connection import register, get_keys,ParseBatcher,TimeBasedThrottle
-from datatypes import GeoPoint, Object, Function
-from user import User, Role
-import query
+from .core import ResourceRequestNotFound
+from .connection import register, get_keys,ParseBatcher,TimeBasedThrottle
+from .datatypes import GeoPoint, Object, Function
+from .user import User, Role
+from . import query
 
 try:
-    import settings_local
+    from . import settings_local
 except ImportError:
     sys.exit('You must create a settings_local.py file of this format:\n\nKEYS = {\n\t\t' \
              "'myappid': {\n\t\t\t"\
@@ -35,11 +37,6 @@ except ImportError:
              "}\n\t}"
             )
 
-try:
-    unicode = unicode
-except NameError:
-    # is python3
-    unicode = str
 
 for app_id in settings_local.KEYS:
     register(
@@ -70,12 +67,21 @@ class Game(Object):
     ACL={"*":{'read':True,'write':True}}
 
 
+Game.Query = query.QueryManager(Game)
+
+
 class GameScore(Object):
     ACL={"*":{'read':True,'write':True}}
 
 
+GameScore.Query = query.QueryManager(GameScore)
+
+
 class City(Object):
     ACL={"*":{'read':True,'write':True}}
+
+
+City.Query = query.QueryManager(City)
 
 
 class Review(Object):
@@ -115,10 +121,10 @@ class TestObject(object):
 
     def testCanCreateNewObject(self):
         self.score.save(_using=self.USING)
-        object_id = self.score.objectId
+        object_id = str(self.score.objectId)
 
         self.assert_(object_id is not None, 'Can not create object')
-        self.assert_(type(object_id) == unicode)
+        self.assertTrue(isinstance(object_id, str))
         self.assert_(type(self.score.createdAt) == datetime.datetime)
         self.assert_(GameScore.Query.using(self.USING).filter(objectId=object_id).exists(),
                      'Can not create object')
@@ -182,7 +188,7 @@ class TestObject(object):
         updated_scores = GameScore.Query.using(self.USING).filter(player_name=self.SCORE_NAME)
         
         self.assertEqual(sorted([s.score for s in updated_scores]),
-                         range(10, 15), msg="batch_save didn't update objects")
+                         list(range(10, 15)), msg="batch_save didn't update objects")
 
         # test deletion
         batcher.batch_delete(scores,_using=self.USING)
@@ -204,7 +210,8 @@ class TestStandardObject(TestObject,unittest.TestCase):
                 name=self.CITY_NAME, location=GeoPoint(self.CITY_LAT, -46.6167)
                 )
 
-class TestObjectUsing(TestObject,unittest.TestCase):
+
+class TestObjectUsing(TestObject, unittest.TestCase):
     def setUp(self):
         self.SCORE_SCORE = 1337
         self.SCORE_NAME = 'Jane'
@@ -217,7 +224,7 @@ class TestObjectUsing(TestObject,unittest.TestCase):
         self.city = City(
                 name=self.CITY_NAME, location=GeoPoint(self.CITY_LAT,-122.395)
                 )
-        self.USING = settings_local.KEYS.keys()[0]
+        self.USING = list(settings_local.KEYS.keys())[0]
 
 
 class TestTypes(unittest.TestCase):
@@ -392,7 +399,7 @@ class TestQuery(object):
 class TestStandardQuery(TestQuery,unittest.TestCase):
     pass
 class TestQueryUsing(TestQuery,unittest.TestCase):
-    USING = settings_local.KEYS.keys()[0]
+    USING = list(settings_local.KEYS.keys())[0]
 
 class TestFunction(unittest.TestCase):
     def setUp(self):
@@ -438,7 +445,7 @@ class TestFunction(unittest.TestCase):
         self.assertAlmostEqual(ret["result"], 4.5)
 
 
-class ConfigureRandomUser():
+class ConfigureRandomUser(object):
     def setUp(self):
         self.username = "dhelmet%s@spaceballs.com" % uuid.uuid4().hex
         self.password = "12345"
@@ -593,7 +600,7 @@ class TimeBasedThrottleTest(unittest.TestCase):
         t = TimeBasedThrottle(limit=4,period=1)
         count = 0
         start = time.time()
-        for i in xrange(0,12):
+        for i in range(0, 12):
             with t:
                 count += 1
         end = time.time()
@@ -605,7 +612,7 @@ class TimeBasedThrottleTest(unittest.TestCase):
         t = TimeBasedThrottle(limit=4,period=1,calls_per_iteration=2)
         count = 0
         start = time.time()
-        for i in xrange(0,8):
+        for i in range(0, 8):
             with t:
                 count += 2
         end = time.time()
@@ -619,7 +626,7 @@ class TimeBasedThrottleTest(unittest.TestCase):
     def testSave(self):
         t = TimeBasedThrottle(limit=2,period=1)
         self.scores = [
-            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+            Game(name='John Doe%s' % s) for s in range(0, 6)]
 
         start = time.time()
         for i in self.scores:
@@ -630,7 +637,7 @@ class TimeBasedThrottleTest(unittest.TestCase):
     def testDelete(self):
         t = TimeBasedThrottle(limit=2,period=1)
         self.scores = [
-            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+            Game(name='John Doe%s' % s) for s in range(0, 6)]
         ParseBatcher().batch_save(self.scores,_using=self.USING)
             
         start = time.time()
@@ -649,7 +656,7 @@ class TimeBasedThrottleTest(unittest.TestCase):
         t = TimeBasedThrottle(limit=2,period=1)
         start = time.time()
         q = Game.Query.using(self.USING).throttle(t)
-        for i in xrange(0,6):
+        for i in range(0, 6):
             self._quickGet(q,'123')
         end = time.time()
         self.assertTrue( (end-start) >= 3)
@@ -663,7 +670,7 @@ class TimeBasedThrottleTest(unittest.TestCase):
         count = 0
         start = time.time()
 
-        for i in xrange(0,6):
+        for i in range(0, 6):
             ParseBatcher().batch_save([g],_using=self.USING,_throttle=t)
         end = time.time()
         self.assertGreater(end-start,3)
@@ -685,7 +692,7 @@ class TimeBasedThrottleTest(unittest.TestCase):
     def testBatchDelete(self):
         t = TimeBasedThrottle(limit=2,period=1)
         self.scores = [
-            Game(name='John Doe%s' % s) for s in xrange(0, 6)]
+            Game(name='John Doe%s' % s) for s in range(0, 6)]
         ParseBatcher().batch_save(self.scores,_using=self.USING)
             
         start = time.time()

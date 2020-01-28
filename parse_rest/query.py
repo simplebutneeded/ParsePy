@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -11,14 +12,14 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from builtins import str, object
+from future.utils import with_metaclass
+from past.builtins import basestring
+
 import json
 import collections
 import copy
 
-try:
-    unicode = unicode
-except NameError:
-    unicode = str
 
 class QueryResourceDoesNotExist(Exception):
     '''Query returndtBCnOCz4bed no results'''
@@ -40,15 +41,15 @@ class QueryManager(object):
 
     def _fetch(self, **kw):
         using = None
-        if kw.has_key('_using'):
+        if '_using' in kw:
             using = kw.get('_using')
             del kw['_using']
         as_user = None
-        if kw.has_key('_as_user'):
+        if '_as_user' in kw:
             as_user = kw.get('_as_user')
             del kw['_as_user']
         high_volume = False
-        if kw.has_key('_high_volume'):
+        if '_high_volume' in kw:
             high_volume = kw.get('_high_volume')
             del kw['_high_volume']
         values_list = kw.get('_values_list')
@@ -58,7 +59,7 @@ class QueryManager(object):
         if values:
             del kw['_values']
         throttle = None
-        if kw.has_key('_throttle'):
+        if '_throttle' in kw:
             throttle = kw.get('_throttle')
             del kw['_throttle']
 
@@ -76,7 +77,7 @@ class QueryManager(object):
             while not done:
                 res = klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw)
                 # apparently parse server can return a signular result instead their normal format
-                if not res.has_key('results'):
+                if 'results' not in res:
                     res = {'results':[res]}
                     
                 if not (values_list or values):
@@ -109,7 +110,7 @@ class QueryManager(object):
                 
                 res = klass.GET(uri, _app_id=using,_user=as_user,_throttle=throttle,**kw)
                 # apparently parse server can return a signular result instead their normal format
-                if not res.has_key('results'):
+                if 'results' not in res:
                     res = {'results':[res]}
                     
                 if not (values_list or values):
@@ -133,15 +134,15 @@ class QueryManager(object):
 
     def _count(self, **kw):
         using = None
-        if kw.has_key('_using'):
+        if '_using' in kw:
             using = kw.get('_using')
             del kw['_using']
         as_user = None
-        if kw.has_key('_as_user'):
+        if '_as_user' in kw:
             as_user = kw.get('_as_user')
             del kw['_as_user']
         throttle = None
-        if kw.has_key('_throttle'):
+        if '_throttle' in kw:
             throttle = kw.get('_throttle')
             del kw['_throttle']
         
@@ -215,16 +216,14 @@ class QuerysetMetaclass(type):
         return cls
 
 
-class Queryset(object):
-    __metaclass__ = QuerysetMetaclass
-
+class Queryset(with_metaclass(QuerysetMetaclass, object)):
     OPERATORS = [
         'lt', 'lte', 'gt', 'gte', 'ne', 'in', 'nin', 'exists', 'select', 'dontSelect', 'all', 'regex'
         ]
 
     @staticmethod
     def convert_to_parse(value):
-        from datatypes import ParseType
+        from .datatypes import ParseType
         return ParseType.convert_to_parse(value, as_pointer=True)
 
     @classmethod
@@ -351,7 +350,7 @@ class Queryset(object):
 
     def filter(self, **kw):
         clone = self._clone()
-        for name, value in kw.items():
+        for name, value in list(kw.items()):
             parse_value = Queryset.convert_to_parse(value)
             attr, operator = Queryset.extract_filter_operator(name)
             if operator is None:
@@ -431,4 +430,4 @@ class Queryset(object):
         return clone
         
     def __repr__(self):
-        return unicode(self._fetch())
+        return str(self._fetch())

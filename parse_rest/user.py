@@ -14,11 +14,10 @@ import logging
 logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 
-from core import ResourceRequestLoginRequired
-from connection import API_ROOT
-from datatypes import ParseResource, ParseType,Function
-from query import QueryManager
-import datatypes
+from .core import ResourceRequestLoginRequired
+from .connection import API_ROOT
+from .datatypes import ParseResource, ParseType, Function, Object
+from .query import QueryManager
 
 
 def login_required(func):
@@ -147,8 +146,10 @@ class User(ParseResource):
 
 User.Query = QueryManager(User)
 
-class Role(datatypes.Object):
+
+class Role(Object):
     ENDPOINT_ROOT = '/'.join([API_ROOT, 'roles'])
     parse_table = '_Role'
+
 
 Role.Query = QueryManager(Role)

@@ -1,3 +1,4 @@
+from __future__ import division
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -10,20 +11,18 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-try:
-    from urllib2 import Request, urlopen, HTTPError
-    from urllib import urlencode
-except ImportError:
-    # is Python3
-    from urllib.request import Request, urlopen
-    from urllib.error import HTTPError
-    from urllib.parse import urlencode
+from future import standard_library
+standard_library.install_aliases()
 
-from urlparse import urlparse
+from builtins import bytes, str, zip, range, object
+from past.utils import old_div
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlparse
+
 import json
 import datetime
 import time
-import urllib2
 #import grequests
 import re
 import collections
@@ -32,7 +31,7 @@ import math
 import logging
 LOGGER = logging.getLogger(__name__)
 
-import core
+from . import core
 
 # Changed to relative URL so we can add the customer-specific API_ROOT late in the game
 #API_ROOT = 'https://api.parse.com/1'
@@ -52,7 +51,7 @@ MAX_PARSE_OFFSET = 10000
 def chunks(l, n):
     """ Yield successive n-sized chunks from l.
     """
-    for i in xrange(0, len(l), n):
+    for i in range(0, len(l), n):
         yield l[i:i+n]
 
 def register(app_id, rest_key, **kw):
@@ -105,7 +104,7 @@ class ConnectionException(Exception): pass
 
 class Throttle(object):
     def __unicode__(self):
-        return unicode(self.__class__.__name__)
+        return str(self.__class__.__name__)
     def __str__(self):
         return self.__unicode__().encode('utf-8')
     def __repr__(self):
@@ -134,7 +133,7 @@ class TimeBasedThrottle(Throttle):
 
         self.calls = collections.deque()
         # start with a full queue so we don't count the 0 second
-        self.calls.extend(time.time() for x in xrange(0,limit))
+        self.calls.extend(time.time() for x in range(0, limit))
         self.calls_per_iteration = calls_per_iteration
 
     def __unicode__(self):
@@ -148,7 +147,7 @@ class TimeBasedThrottle(Throttle):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
-            self.calls.extend([time.time() for x in xrange(0,self.calls_per_iteration)])
+            self.calls.extend([time.time() for x in range(0, self.calls_per_iteration)])
             self.clean_calls()
 
     def calls_per(self,num_calls):
@@ -171,7 +170,7 @@ class TimeBasedThrottle(Throttle):
 
     @property
     def batch_limit(self):
-        return self.limit / self.period
+        return old_div(self.limit, self.period)
 
     @property
     def max_calls(self):
@@ -230,7 +229,7 @@ class ParseBase(object):
             if _user.is_master():
                 if not master_key:
                     raise core.ParseError('Missing requested master key')
-                elif 'X-Parse-Session-Token' not in headers.keys():
+                elif 'X-Parse-Session-Token' not in list(headers.keys()):
                     headers['X-Parse-Master-Key']= master_key
             else:
                 if not _user.is_authenticated():
@@ -293,6 +292,10 @@ class ParseBase(object):
 
     @classmethod
     def _serial_execute(cls,http_verb,url,data,headers,retry_on_temp_error,error_wait,max_error_wait,_throttle,num_operations):
+        if data is None:
+            data = b''
+        else:
+            data = bytes(data, encoding='utf8')
         request = Request(url, data, headers)
         request.get_method = lambda: http_verb
 
@@ -314,7 +317,7 @@ class ParseBase(object):
                     raise exc(e.read())
                 else:
                     raise exc(e.code,e.read(),e)
-            except urllib2.URLError as e:
+            except URLError as e:
                 if not retry_on_temp_error:
                     raise
 
@@ -409,14 +412,14 @@ class ParseBatcher(ParseBase):
         for thisBatch in chunks(methods,min(limit,50)):
             # It's not necessary to pass in using and as_users here since this eventually
             # calls execute() with the batch flag, which doesn't actually do a callout
-            queries, callbacks = zip(*[m(batch=True) for m in thisBatch])
+            queries, callbacks = list(zip(*[m(batch=True) for m in thisBatch]))
 
             # perform all the operations in one batch
             responses = self.execute("", "POST", requests=queries,_app_id=_using,_user=_as_user,_throttle=_throttle)
             # perform the callbacks with the response data (updating the existing
             # objets, etc)
             for callback, response in zip(callbacks, responses):
-                if response.has_key('error'):
+                if 'error' in response:
                     raise core.ParseError('Error: %s' % response['error'])
                 callback(response["success"])
 
