@@ -12,6 +12,8 @@ from __future__ import division
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from future import standard_library
+from future.utils import python_2_unicode_compatible
+
 standard_library.install_aliases()
 
 from builtins import bytes, str, zip, range, object
@@ -102,11 +104,12 @@ def master_key_required(func):
 
 class ConnectionException(Exception): pass
 
+
+@python_2_unicode_compatible
 class Throttle(object):
-    def __unicode__(self):
-        return str(self.__class__.__name__)
     def __str__(self):
-        return self.__unicode__().encode('utf-8')
+        return str(self.__class__.__name__)
+
     def __repr__(self):
         return self.__str__()
 
@@ -121,6 +124,7 @@ class NullThrottle(Throttle):
         return self
 
 
+@python_2_unicode_compatible
 class TimeBasedThrottle(Throttle):
     def __init__(self,limit,period,calls_per_iteration=1):
         if period <= 0:
@@ -136,7 +140,7 @@ class TimeBasedThrottle(Throttle):
         self.calls.extend(time.time() for x in range(0, limit))
         self.calls_per_iteration = calls_per_iteration
 
-    def __unicode__(self):
+    def __str__(self):
         return u'<TimeBasedThrottle: Period=%s,limit=%s, remaining: %s' % (self.period,self.limit,self.max_calls)
 
     def __enter__(self):
